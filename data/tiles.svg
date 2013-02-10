@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="744.09448819"
+   height="1052.3622047"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.48.3.1 r9886"
+   sodipodi:docname="tiles.svg">
+  <defs
+     id="defs4">
+    <filter
+       inkscape:collect="always"
+       id="filter3855">
+      <feGaussianBlur
+         inkscape:collect="always"
+         stdDeviation="1.6504081"
+         id="feGaussianBlur3857" />
+    </filter>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="11.2"
+     inkscape:cx="129.25734"
+     inkscape:cy="764.6875"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer2"
+     showgrid="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="1024"
+     inkscape:window-x="0"
+     inkscape:window-y="27"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:groupmode="layer"
+     id="layer2"
+     inkscape:label="size"
+     style="display:none">
+    <rect
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       id="rect3804"
+       width="42"
+       height="38"
+       x="100.55394"
+       y="268.88675"
+       inkscape:export-filename="/home/dpc/lab/rust/rg/data/wall.png"
+       inkscape:export-xdpi="91"
+       inkscape:export-ydpi="91" />
+    <g
+       id="g3987">
+      <rect
+         y="259.62781"
+         x="101.46466"
+         height="56.517857"
+         width="9.999999"
+         id="rect3882"
+         style="opacity:0.47021945;fill:#00d900;fill-opacity:1;stroke:none;display:inline" />
+      <rect
+         y="259.62781"
+         x="111.46465"
+         height="56.517857"
+         width="20.17857"
+         id="rect3882-2"
+         style="opacity:0.47021945;fill:#d6d900;fill-opacity:1;stroke:none;display:inline" />
+      <rect
+         y="259.62781"
+         x="131.64322"
+         height="56.517857"
+         width="9.999999"
+         id="rect3882-0"
+         style="opacity:0.47021945;fill:#00d900;fill-opacity:1;stroke:none;display:inline" />
+    </g>
+  </g>
+  <g
+     inkscape:label="floor"
+     inkscape:groupmode="layer"
+     id="layer1"
+     style="display:none">
+    <path
+       sodipodi:type="star"
+       style="fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:#670000;stroke-width:2.92021966;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       id="path2987"
+       sodipodi:sides="6"
+       sodipodi:cx="162.85715"
+       sodipodi:cy="244.50504"
+       sodipodi:r1="58.923161"
+       sodipodi:r2="51.028954"
+       sodipodi:arg1="1.0366138"
+       sodipodi:arg2="1.5602125"
+       inkscape:flatsided="true"
+       inkscape:rounded="0"
+       inkscape:randomized="0"
+       d="m 192.85715,295.21932 -58.91987,0.62362 -29.99999,-50.71429 28.91986,-51.3379 58.91986,-0.62362 30,50.71429 z"
+       transform="matrix(0.34241271,0.00450054,-0.0045006,0.34240812,66.890001,203.43328)"
+       inkscape:export-filename="/home/dpc/lab/rust/rg/data/tile.bmp.png"
+       inkscape:export-xdpi="91.056686"
+       inkscape:export-ydpi="91.056686" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer4"
+     inkscape:label="wall"
+     style="display:inline">
+    <path
+       sodipodi:type="star"
+       style="fill:#670000;fill-opacity:1;fill-rule:evenodd;stroke:#670000;stroke-width:2.92021965999999988;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;display:inline"
+       id="path2987-8"
+       sodipodi:sides="6"
+       sodipodi:cx="162.85715"
+       sodipodi:cy="244.50504"
+       sodipodi:r1="58.923161"
+       sodipodi:r2="51.028954"
+       sodipodi:arg1="1.0366138"
+       sodipodi:arg2="1.5602125"
+       inkscape:flatsided="true"
+       inkscape:rounded="0"
+       inkscape:randomized="0"
+       d="m 192.85715,295.21932 -58.91987,0.62362 -29.99999,-50.71429 28.91986,-51.3379 58.91986,-0.62362 30,50.71429 z"
+       transform="matrix(0.34241271,0.00450054,-0.0045006,0.34240812,66.890001,203.43328)"
+       inkscape:export-filename="/home/dpc/lab/rust/rg/data/tile.bmp.png"
+       inkscape:export-xdpi="91.056686"
+       inkscape:export-ydpi="91.056686" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer3"
+     inkscape:label="fog of war"
+     style="display:none">
+    <path
+       sodipodi:type="star"
+       style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:2.92021966;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;display:inline;filter:url(#filter3855)"
+       id="path2987-46"
+       sodipodi:sides="6"
+       sodipodi:cx="162.85715"
+       sodipodi:cy="244.50504"
+       sodipodi:r1="58.923161"
+       sodipodi:r2="51.028954"
+       sodipodi:arg1="1.0366138"
+       sodipodi:arg2="1.5602125"
+       inkscape:flatsided="true"
+       inkscape:rounded="0"
+       inkscape:randomized="0"
+       d="m 192.85715,295.21932 -58.91987,0.62362 -29.99999,-50.71429 28.91986,-51.3379 58.91986,-0.62362 30,50.71429 z"
+       transform="matrix(0.34241271,0.00450054,-0.0045006,0.34240812,66.890001,203.43328)"
+       inkscape:export-filename="/home/dpc/lab/rust/rg/data/fog.png"
+       inkscape:export-xdpi="91.056686"
+       inkscape:export-ydpi="91.056686" />
+  </g>
+</svg>

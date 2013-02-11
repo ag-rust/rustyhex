@@ -36,13 +36,13 @@ fn load_or_die(file : ~str) -> ~video::Surface {
 }
 
 fn draw_each(screen : &video::Surface, map : &mut map::Map,
-	f : fn(position : map::Position, tile : map::Tile) -> Option<&video::Surface>)
+	f : &a/fn(position : map::Position, tile : map::Tile) -> Option<&a/video::Surface>)
 {
 	do map.each() | position : map::Position, tile : &mut map::Tile | {
-		match f(position , copy *tile) {
+		match f(position , *tile) {
 			None => {},
-			Some(ref surface) => if !screen.blit_surface_rect(
-					*surface,
+			Some(surface) => if !screen.blit_surface_rect(
+					surface,
 					&Rect {
 						x: 0, y: 0,
 						w: map::HEX_FULL_WIDTH as u16,

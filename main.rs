@@ -92,7 +92,7 @@ fn main() {
 			}
 		}
 		do draw_each(screen, map) |position : map::Position, _ : map::Tile| {
-			if player.sees(position) {
+			if !player.sees(position) {
 				Some(&*fog)
 			} else {
 				None

@@ -12,7 +12,7 @@ use sdl::sdl;
 use sdl::ll;
 use sdl::video;
 use sdl::img;
-use sdl::keyboard::{SDLKEscape};
+use sdl::keyboard::*;
 use sdl::event;
 use sdl::video::{DoubleBuf, HWSurface, AsyncBlit};
 
@@ -79,7 +79,7 @@ fn main() {
 
 	let map = map::Map::new();
 
-	let player = Creature::new(Position {x: 5, y: 5}, N);
+	let player = Creature::new(Position {x: 6, y: 6}, N);
 
 	loop {
 		screen.fill(0);
@@ -92,7 +92,7 @@ fn main() {
 			}
 		}
 		do draw_each(screen, map) |position : map::Position, _ : map::Tile| {
-			if !player.sees(position) {
+			if !player.sees(position) && position != player.position() {
 				Some(&*fog)
 			} else {
 				None
@@ -103,10 +103,27 @@ fn main() {
 
 		match event::poll_event() {
 			event::KeyDownEvent(ref key_event) => {
-				if key_event.keycode == SDLKEscape {
-					return;
-				}
-			}
+				match key_event.keycode {
+					SDLKEscape => {
+						return;
+					},
+					SDLKk | SDLKUp => {
+						player.move_forward(map);
+					},
+					SDLKh | SDLKLeft => {
+						player.turn_left();
+					},
+					SDLKl | SDLKRight => {
+						player.turn_right();
+					},
+					SDLKj | SDLKDown => {
+						player.move_backwards(map);
+					},
+					k => {
+						io::print(fmt!("%d\n", k as int));
+					}
+				};
+			},
 			event::NoEvent => {},
 			_ => {}
 		}

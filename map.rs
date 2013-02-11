@@ -2,6 +2,7 @@ pub use sdl::util::Rect;
 
 use core::uint::range;
 use core::cast;
+use core::cmp::Eq;
 
 enum Direction {
 	N = 0,
@@ -48,17 +49,47 @@ pub const HEX_BORDER_WIDTH: uint = 2;
 pub const HEX_FULL_WIDTH: uint = HEX_BASE_WIDTH + 2 * HEX_SIDE_WIDTH + HEX_BORDER_WIDTH;
 pub const HEX_FULL_HEIGHT: uint = HEX_BASE_HEIGHT + HEX_BORDER_HEIGHT;
 
+pub impl Direction {
+
+	pure fn right(&self) -> Direction {
+		unsafe {
+			cast::reinterpret_cast(&((*self as int + 1) % 6))
+		}
+	}
+	pure fn left(&self) -> Direction {
+		unsafe {
+			cast::reinterpret_cast(&((*self as int + 5) % 6))
+		}
+	}
+	pure fn opposite(&self) -> Direction {
+		unsafe {
+			cast::reinterpret_cast(&((*self as int + 3) % 6))
+		}
+	}
+}
+
+pub impl Position : Eq {
+
+	pure fn eq(&self, p : &Position) -> bool {
+		self.x == p.x && self.y == p.y
+	}
+
+	pure fn ne(&self, p : &Position) -> bool {
+		!(self == p)
+	}
+}
+
 pub impl Position {
 
-	fn to_x(&self) -> uint {
+	pure fn to_x(&self) -> uint {
 		self.x * (HEX_BASE_WIDTH + HEX_SIDE_WIDTH)
-
 	}
-	fn to_y(&self) -> uint {
+
+	pure fn to_y(&self) -> uint {
 		self.y * HEX_BASE_HEIGHT +
 			if (self.x % 2) != 0 { HEX_BASE_HEIGHT / 2 } else { 0 }
 	}
-	fn to_rect(&self) -> Rect {
+	pure fn to_rect(&self) -> Rect {
 		Rect {
 			x: self.to_x() as i16, y: self.to_y() as i16,
 			w: (HEX_BASE_WIDTH + 2 * HEX_SIDE_WIDTH + HEX_BORDER_WIDTH) as u16,
@@ -96,7 +127,7 @@ pub impl Position {
 		}
 	}
 
-	fn neighbor(&self, direction : Direction) -> Position {
+	pure fn neighbor(&self, direction : Direction) -> Position {
 		match direction {
 			N => Position { x: self.x, y: self.y - 1 },
 			S => Position { x: self.x, y: self.y + 1 },
@@ -109,29 +140,42 @@ pub impl Position {
 }
 
 pub impl Creature {
-	static fn new(position : Position, direction : Direction) -> ~Creature {
-		~Creature {
+	static fn new(position : Position, direction : Direction) -> ~mut Creature {
+		~mut Creature {
 			position : position, direction : direction
 		}
 	}
 
 	fn turn_right(&self) -> () {
-		unsafe {
-			self.direction = cast::reinterpret_cast(&((self.direction as int + 1) % 6))
-		}
+		self.direction = self.direction.right();
 	}
+
 	fn turn_left(&self) -> () {
-		unsafe {
-			self.direction = cast::reinterpret_cast(&((self.direction as int - 1) % 6))
+		self.direction = self.direction.left();
+	}
+
+	fn move_forward(&mut self, map : &Map) {
+		let new_position = self.position.neighbor(self.direction);
+
+		if (map.at(new_position).is_passable()) {
+			self.position = new_position;
 		}
 	}
 
-	fn move_forward(&mut self) {
-		self.position = self.position.neighbor(self.direction);
+	fn move_backwards(&mut self, map : &Map) {
+		let new_position = self.position.neighbor(self.direction.opposite());
+
+		if (map.at(new_position).is_passable()) {
+			self.position = new_position;
+		}
 	}
 
-	fn sees(&self, position : Position) -> bool {
+	pure fn sees(&self, position : Position) -> bool {
 		self.position.is_neighbor(position)
+	}
+
+	pure fn position(&self) -> Position {
+		self.position
 	}
 }
 
@@ -144,6 +188,13 @@ pub impl Tile {
 		match self.t {
 			WALL => true,
 			_ => false
+		}
+	}
+
+	fn is_passable(&self) -> bool {
+		match self.t {
+			WALL => false,
+			_ => true
 		}
 	}
 }
@@ -166,7 +217,7 @@ pub impl Map {
 	}
 
 	fn at(&self, position : Position) -> Tile {
-		copy self.map[position.x][position.y]
+		self.map[position.x][position.y]
 	}
 
 	fn each(&mut self, f : fn(position : Position, &mut Tile)) {
@@ -176,7 +227,5 @@ pub impl Map {
 			}
 		}
 	}
-	
-
 }
 

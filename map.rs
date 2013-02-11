@@ -69,7 +69,7 @@ pub impl Position {
 	pure fn is_neighbor(&self, position : Position) -> bool {
 		let rx = self.x - position.x;
 		let ry = self.y - position.y;
-		if (self.x % 2) == 0 {
+		if (self.x % 2) != 0 {
 			match (rx, ry) {
 				(0, -1) => true,
 				(0, 1) => true,

@@ -24,7 +24,7 @@ const SCREEN_BPP: uint = 32;
 
 
 
-fn load(file : ~str) -> ~video::Surface {
+fn load_or_die(file : ~str) -> ~video::Surface {
 	match img::load_img(str::concat(&[~"data/", copy file, ~".png"])) {
 		result::Ok(image) => {
 			image
@@ -73,12 +73,11 @@ fn main() {
 	};
 
 
-	let fog = load(~"fog");
-	let floor = load(~"floor");
-	let wall = load(~"wall");
+	let fog = load_or_die(~"fog");
+	let floor = load_or_die(~"floor");
+	let wall = load_or_die(~"wall");
 
 	let map = map::Map::new();
-
 
 	let player = Creature::new(Position {x: 5, y: 5}, N);
 

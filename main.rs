@@ -22,8 +22,6 @@ const SCREEN_WIDTH: uint = 800;
 const SCREEN_HEIGHT: uint = 600;
 const SCREEN_BPP: uint = 32;
 
-
-
 fn load_or_die(file : ~str) -> ~video::Surface {
 	match img::load_img(str::concat(&[~"data/", copy file, ~".png"])) {
 		result::Ok(image) => {
@@ -54,6 +52,18 @@ fn draw_each(screen : &video::Surface, map : &mut map::Map,
 	}
 }
 
+fn draw(screen: &video::Surface, position : map::Position, surface : &video::Surface) {
+	if !screen.blit_surface_rect(
+			surface,
+			&Rect {
+			x: 0, y: 0,
+			w: map::HEX_FULL_WIDTH as u16,
+			h: map::HEX_FULL_HEIGHT as u16
+		},
+		&position.to_rect()
+	) { die!(~"Failed blit_surface_rect") }
+}
+
 fn main() {
 	io::print("Hi!\n");
 	sdl::sdl::init(&[sdl::sdl::InitEverything]);
@@ -76,12 +86,18 @@ fn main() {
 	let fog = load_or_die(~"fog");
 	let floor = load_or_die(~"floor");
 	let wall = load_or_die(~"wall");
+	let notvisibe = load_or_die(~"notvisible");
+	let human = load_or_die(~"human");
 
 	let map = map::Map::new();
 
 	let player = Creature::new(Position {x: 6, y: 6}, N);
 
+	player.set_map(map);
+
 	loop {
+		player.update_visibility();
+
 		screen.fill(0);
 
 		do draw_each(screen, map) | _ : map::Position, tile : map::Tile| {
@@ -92,7 +108,17 @@ fn main() {
 			}
 		}
 		do draw_each(screen, map) |position : map::Position, _ : map::Tile| {
-			if !player.sees(position) && position != player.position() {
+			if !player.sees(&position) {
+				Some(&*notvisibe)
+			} else {
+				None
+			}
+		}
+
+		draw(screen, player.wrap_position(&player.position()), human);
+
+		do draw_each(screen, map) |position : map::Position, _ : map::Tile| {
+			if !player.knowns(&position) {
 				Some(&*fog)
 			} else {
 				None
@@ -108,7 +134,7 @@ fn main() {
 						return;
 					},
 					SDLKk | SDLKUp => {
-						player.move_forward(map);
+						player.move_forward();
 					},
 					SDLKh | SDLKLeft => {
 						player.turn_left();
@@ -117,7 +143,7 @@ fn main() {
 						player.turn_right();
 					},
 					SDLKj | SDLKDown => {
-						player.move_backwards(map);
+						player.move_backwards();
 					},
 					k => {
 						io::print(fmt!("%d\n", k as int));

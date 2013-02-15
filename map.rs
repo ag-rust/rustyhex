@@ -23,15 +23,6 @@ pub struct Position {
 	y : int
 }
 
-pub struct Arc {
-	l : f64,
-	r : f64
-}
-
-pub struct World {
-
-}
-
 pub struct Creature {
 	position :Position,
 	direction : Direction,
@@ -77,7 +68,7 @@ pub impl Direction {
 			cast::reinterpret_cast(&mymod((*self as int + 5), 6))
 		}
 	}
-	pure fn angle(&self, i : int) -> Direction {
+	pure fn turn(&self, i : int) -> Direction {
 		unsafe {
 			cast::reinterpret_cast(&mymod((*self as int + i), 6))
 		}
@@ -115,6 +106,14 @@ pub impl Position {
 	pure fn to_pix_y(&self) -> uint {
 		self.y as uint * HEX_BASE_HEIGHT +
 			if mymod(self.x, 2) != 0 { HEX_BASE_HEIGHT / 2 } else { 0 }
+	}
+
+	pure fn to_pix_cx(&self) -> uint {
+		self.to_pix_x() + HEX_FULL_WIDTH / 2
+	}
+
+	pure fn to_pix_cy(&self) -> uint {
+		self.to_pix_y() + HEX_FULL_HEIGHT / 2
 	}
 
 	pure fn to_rect(&self) -> Rect {
@@ -177,43 +176,6 @@ pure fn mymod(x :int, m : int) -> int {
 	((x % m) + m) % m
 }
 
-pub impl Arc {
-	static fn new(l : f64, r : f64) -> ~Arc {
-		~Arc {l: l, r: r}
-	}
-
-	fn contains(&self, p: f64) -> bool {
-		if self.l >= self.r {
-			(self.l >= p) && (self.r <= p)
-		} else {
-			(self.l >= p) || (self.r <= p)
-		}
-	}
-
-	fn broader(&self, f : f64) -> ~Arc{
-		~Arc {
-			l: self.l + f, r: self.r -f
-		}
-	}
-
-	fn intersect(&mut self, a : &Arc) {
-		if a.contains(self.l) {
-			if a.contains(self.r) {
-				return;
-			} else {
-				self.r = a.r;
-			}
-		} else {
-			if a.contains(self.r) {
-				self.l = a.l;
-			} else {
-				self.l = 2.0 * float::consts::pi as f64;
-				self.r = 2.0 * float::consts::pi as f64;
-			}
-		}
-	}
-}
-
 pub impl Creature {
 	static fn new(position : Position, direction : Direction) -> ~mut Creature {
 		~mut Creature {
@@ -239,7 +201,8 @@ pub impl Creature {
 		}
 	}
 
-	fn do_view(&mut self, pos: &Position, dir : Direction, arc : &Arc, depth: uint) {
+	fn do_view(&mut self, pos: &Position, dir : Direction,
+		pdir : Option<Direction>, depth: uint) {
 		if (depth == 0) {
 			return;
 		}
@@ -247,43 +210,27 @@ pub impl Creature {
 		self.mark_visible(pos);
 		self.mark_known(pos);
 
+		let neighbors = match pdir {
+			Some(pdir) => {
+				if pdir == dir {
+					~[dir]
+				} else {
+					~[dir, pdir]
+				}
+			},
+			None => {
+				~[dir, dir.left(), dir.right()]
+			}
+		};
+
 		do self.with_map |map| {
 			if map.at(pos).can_see_through() {
-				let neighbors = [dir.left(), dir, dir.right()];
-
 				for neighbors.each |&d| {
 					let n = pos.neighbor(d);
-					if arc.contains(self.angle(&n)) {
-						let mut narc = self.to_view_arc_narrow(&n, dir);
-						narc.intersect(arc);
-						self.do_view(&n, d, narc, depth - 1);
-					}
+					self.do_view(&n, d, Some(dir), depth - 1);
 				}
 			}
 		}
-	}
-
-	pure fn angle(&self, pos : &Position) -> f64 {
-		let a = float::atan2(
-			-((pos.to_pix_y() as int) - (self.position.to_pix_y() as int)) as f64,
-			 ((pos.to_pix_x() as int) - (self.position.to_pix_x() as int)) as f64
-			);
-
-		if a < 0.0 { a + 2.0 * float::consts::pi as f64 } else { a }
-	}
-
-	fn to_view_arc_narrow(&self, pos : &Position, d : Direction) -> ~Arc {
-		let l = self.angle(&pos.neighbor(d.left()));
-		let r = self.angle(&pos.neighbor(d.right()));
-
-		Arc::new(l ,r)
-	}
-
-	fn to_view_arc(&self, pos : &Position, d : Direction) -> ~Arc {
-		let l = self.angle(&pos.neighbor(d.left())) + 0.2;
-		let r = self.angle(&pos.neighbor(d.right())) - 0.2;
-
-		Arc::new(l ,r)
 	}
 
 	fn update_visibility(&mut self) {
@@ -292,7 +239,7 @@ pub impl Creature {
 			self.map_visible = Some(vec::from_elem(map.width, vec::from_elem(map.height, false)));
 		}
 
-		self.do_view(&self.position, self.direction, self.to_view_arc(&self.position, self.direction), 7);
+		self.do_view(&self.position, self.direction, None, 15);
 	}
 
 	fn turn_right(&mut self) {
@@ -408,7 +355,7 @@ pub impl Map {
 
 		let map = vec::from_fn(MAP_WIDTH, |_| {
 			vec::from_fn(MAP_HEIGHT, |_| {
-				if (rng.gen_int_range(0, 4) == 0) {
+				if (rng.gen_int_range(0, 3) == 0) {
 					WALL
 				} else {
 					FLOOR

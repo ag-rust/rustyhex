@@ -34,10 +34,10 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="5.6568542"
-     inkscape:cx="111.03067"
+     inkscape:cx="73.02368"
      inkscape:cy="740.55064"
      inkscape:document-units="px"
-     inkscape:current-layer="layer2"
+     inkscape:current-layer="layer3"
      showgrid="false"
      inkscape:window-width="1920"
      inkscape:window-height="1024"
@@ -68,7 +68,7 @@
        height="38"
        x="107.90224"
        y="264.88992"
-       inkscape:export-filename="/home/dpc/lab/rust/rustyhex/data/human.png"
+       inkscape:export-filename="/home/dpc/lab/rust/rustyhex/data/notvisible.png"
        inkscape:export-xdpi="91"
        inkscape:export-ydpi="91" />
     <g
@@ -150,8 +150,8 @@
   <g
      inkscape:groupmode="layer"
      id="layer3"
-     inkscape:label="fog of war"
-     style="display:none">
+     inkscape:label="fog"
+     style="display:inline">
     <path
        sodipodi:type="star"
        style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:2.92021966;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;display:inline;filter:url(#filter3855)"
@@ -175,11 +175,11 @@
   <g
      inkscape:groupmode="layer"
      id="layer5"
-     inkscape:label="fog2"
-     style="display:none">
+     inkscape:label="notvisible"
+     style="display:inline">
     <path
        sodipodi:type="star"
-       style="opacity:0.33300003;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:2.92021966;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;display:inline"
+       style="opacity:0.5;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:2.92021966;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;display:inline"
        id="path2987-46-3"
        sodipodi:sides="6"
        sodipodi:cx="162.85715"
@@ -200,10 +200,11 @@
   <g
      inkscape:groupmode="layer"
      id="layer6"
-     inkscape:label="hero">
+     inkscape:label="hero"
+     style="display:inline">
     <path
        sodipodi:type="arc"
-       style="fill:#090075;fill-opacity:1;stroke:#000000;stroke-width:1.33167839000000021;stroke-opacity:1"
+       style="fill:#090075;fill-opacity:1;stroke:#000000;stroke-width:1.33167839;stroke-opacity:1"
        id="path3023"
        sodipodi:cx="86"
        sodipodi:cy="283.11218"

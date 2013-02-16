@@ -37,11 +37,11 @@ fn draw_each_on_view(
 		screen : &video::Surface,
 		view : &View,
 		pos : &Position,
-		map : &mut map::Map,
+		map : &RelativeMap,
 		f : &a/fn(position : map::Position, tile : map::Tile) -> Option<&a/video::Surface>)
 	{
-		do map.each_in_vrect(pos, 5, 5) | position : map::Position, tile : &mut map::Tile | {
-			match f(position , *tile) {
+		do each_in_vrect(map, pos, 5, 5) | position : map::Position, tile : map::Tile | {
+			match f(position , tile) {
 				None => {},
 				Some(surface) => view.draw(screen, &position, surface)
 			};
@@ -74,7 +74,7 @@ fn main() {
 
 	let map = map::Map::new();
 
-	let player = Creature::new(Position {x: 6, y: 6}, N);
+	let player = Creature::new(Position {x: 0, y: 0}, N);
 
 	player.set_map(map);
 
@@ -82,30 +82,31 @@ fn main() {
 		player.update_visibility();
 
 		screen.fill(0);
+		let relmap = RelativeMap::new(map, &player.position, player.direction);
 
-		let view = player.view();
+		let p = Position{x: 0, y: 0};
 
-		do draw_each_on_view(screen, &*view, &player.position, map) | _ : map::Position, tile : map::Tile| {
+		let view = ~View { x_offset: 400, y_offset: 400 };
+
+		do draw_each_on_view(screen, &*view, &p, relmap) | _ : map::Position, tile : map::Tile| {
 			if tile.is_wall() {
 				Some(&*wall)
 			} else {
 				Some(&*floor)
 			}
 		}
-		do draw_each_on_view(screen, &*view, &player.position, map) |position : map::Position, _ : map::Tile| {
-			if !player.sees(&position) {
+		do draw_each_on_view(screen, &*view, &p, relmap) |position : map::Position, _ : map::Tile| {
+			if !player.sees(&relmap.translate(&position)) {
 				Some(&*notvisibe)
 			} else {
 				None
 			}
 		}
 
-		view.draw(screen, &player.position, human);
-
-		do draw_each_on_view(screen, &*view, &player.position, map) |position : map::Position, _ : map::Tile| {
-			if !player.knowns(&position) {
-				//Some(&*fog)
-				Some(&*notvisibe)
+		view.draw(screen, &p, human);
+		do draw_each_on_view(screen, &*view, &p, relmap) |position : map::Position, _ : map::Tile| {
+			if !player.knows(&relmap.translate(&position)) {
+				Some(&*fog)
 			} else {
 				None
 			}

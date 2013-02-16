@@ -3,6 +3,7 @@ pub use sdl::util::Rect;
 use core::uint::range;
 use core::cast;
 use core::cmp::Eq;
+use core::ops::Add;
 use core::vec;
 use core::int::*;
 
@@ -45,6 +46,21 @@ pub struct Map {
 	map : ~[ ~[ Tile ] ],
 	width: uint,
 	height : uint
+}
+
+trait MapView {
+	fn at(&self, pos: &Position) -> Tile;
+	fn translate(&self, pos : &Position) -> Position;
+/*	fn at_mut(&mut self, pos: &Position) -> &self/mut Tile; */
+}
+
+/**
+ * View of the map with rotation (dir) and offset (pos)
+ */
+pub struct RelativeMap {
+	map : @mut Map,
+	pos : Position,
+	dir : Direction
 }
 
 pub struct View {
@@ -92,7 +108,7 @@ pub impl Direction {
 	}
 }
 
-pub impl Position : Eq {
+pub impl Eq for Position {
 
 	pure fn eq(&self, p : &Position) -> bool {
 		self.x == p.x && self.y == p.y
@@ -100,6 +116,12 @@ pub impl Position : Eq {
 
 	pure fn ne(&self, p : &Position) -> bool {
 		!(self == p)
+	}
+}
+
+pub impl Add<Position, Position> for Position {
+	pure fn add(&self, pos : &Position) -> Position {
+		Position {x: self.x + pos.x, y: self.y + pos.y }
 	}
 }
 
@@ -324,6 +346,18 @@ pub impl Creature {
 			None => {}
 		}
 	}
+/*
+	pure fn sees_relative(&self, relpos: &Position) -> bool {
+		let pos = Position { x: relpos.x + self.position.x, y: relpos.y + self.position.y };
+		let p = self.wrap_position(&pos);
+
+		match self.map_visible {
+			Some(ref visible) => {
+				visible[p.x][p.y]
+			},
+			None => false
+		}
+	}*/
 
 	pure fn sees(&self, pos: &Position) -> bool {
 		let p = self.wrap_position(pos);
@@ -336,7 +370,7 @@ pub impl Creature {
 		}
 	}
 
-	pure fn knowns(&self, pos: &Position) -> bool {
+	pure fn knows(&self, pos: &Position) -> bool {
 		let p = self.wrap_position(pos);
 
 		match self.map_known {
@@ -376,6 +410,35 @@ pub impl Tile {
 	}
 }
 
+pub impl MapView for Map {
+	fn at(&self, pos: &Position) -> Tile {
+		let p = self.wrap_position(pos);
+		self.map[p.x][p.y]
+	}
+	fn translate(&self, pos : &Position) -> Position {
+		*pos
+	}
+/*
+	fn at_mut(&mut self, pos: &Position) -> &self/mut Tile {
+		let p = self.wrap_position(pos);
+		&mut self.map[p.x][p.y]
+	}
+*/
+
+	
+}
+fn each_in_vrect<T: MapView>(s: &T, cp : &Position, rx : int, ry : int, f : &fn(position : Position, t: Tile)) {
+	for range(-rx, rx + 1) |vx| {
+		for range(-ry, ry + 1) |vy| {
+			let x = cp.x + vx;
+			let y = cp.y + vy + (vx >> 1);
+			let p = Position {x: x as int, y: y as int};
+			f(p, s.at(&p));
+		}
+	}
+}
+
+
 pub impl Map {
 	static fn new() -> @mut Map {
 		let rng = rand::Rng();
@@ -401,15 +464,6 @@ pub impl Map {
 		}
 	}
 
-	fn at(&self, position : &Position) -> Tile {
-		let p = self.wrap_position(position);
-		self.map[p.x][p.y]
-	}
-	fn mut_at(&mut self, position : &Position) -> &self/mut Tile {
-		let p = self.wrap_position(position);
-		&mut self.map[p.x][p.y]
-	}
-
 	fn each(&mut self, f : &fn(position : Position, &mut Tile)) {
 		for range(0, self.width as int) |x| {
 			for range(0, self.height as int) |y| {
@@ -417,16 +471,51 @@ pub impl Map {
 			}
 		}
 	}
-	fn each_in_vrect(&mut self, cp : &Position, rx : int, ry : int,
-			f : &fn(position : Position, &mut Tile)) {
-		for range(-rx, rx) |vx| {
-			for range(-ry, ry as int) |vy| {
-				let x = cp.x + vx;
-				let y = cp.y + vy + (vx >> 1);
-				let p = Position {x: x as int, y: y as int};
-				f(p, self.mut_at(&p));
-			}
-		}
+	
+}
+pub impl RelativeMap {
+	static fn new(map: @mut Map, pos : &Position, dir : Direction) -> ~mut RelativeMap {
+		~mut RelativeMap{ map: map, pos: *pos, dir: dir }
 	}
 }
 
+pub impl MapView for RelativeMap {
+	fn at(&self, pos: &Position) -> Tile {
+		self.map.at(&self.translate(pos))
+	}
+
+	fn translate(&self, pos : &Position) -> Position {
+		match self.dir {
+			N => Position {
+				x: self.pos.x + pos.x,
+				y: self.pos.y + pos.y
+			},
+			S => Position {
+				x: self.pos.x - pos.x,
+				y: self.pos.y - pos.y
+			},
+			NW => Position {
+				x: self.pos.x + pos.y ,
+				y: self.pos.y + pos.y - pos.x
+			},
+			SE => Position {
+				x: self.pos.x - pos.y,
+				y: self.pos.y - pos.y + pos.x
+			},
+			NE => Position {
+				x: self.pos.x + pos.x - pos.y,
+				y: self.pos.y + pos.x
+			},
+			SW => Position {
+				x: self.pos.x - pos.x + pos.y,
+				y: self.pos.y - pos.x
+			}
+		}
+	}
+
+	/*
+	fn at_mut(&mut self, pos: &Position) -> &self/mut Tile {
+		self.map.at_mut(pos)
+	}
+	*/
+}

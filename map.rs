@@ -4,8 +4,6 @@ use core::uint::range;
 use core::cast;
 use core::cmp::Eq;
 use core::vec;
-use core::vec::{filtered};
-use core::num::float;
 use core::int::*;
 
 #[deriving_eq]
@@ -104,8 +102,8 @@ pub impl Position {
 	}
 
 	pure fn to_pix_y(&self) -> uint {
-		self.y as uint * HEX_BASE_HEIGHT +
-			if mymod(self.x, 2) != 0 { HEX_BASE_HEIGHT / 2 } else { 0 }
+		(self.y as uint) * HEX_BASE_HEIGHT
+		- (self.x as uint) * HEX_BASE_HEIGHT / 2
 	}
 
 	pure fn to_pix_cx(&self) -> uint {
@@ -127,29 +125,15 @@ pub impl Position {
 	pure fn is_neighbor(&self, position : Position) -> bool {
 		let rx = self.x - position.x;
 		let ry = self.y - position.y;
-		if mymod(self.x, 2) != 0 {
-			match (rx, ry) {
-				(0, -1)  => true,
-				(0, 1)   => true,
-				(-1, 0)  => true,
-				(1, 0)   => true,
-				(-1, -1) => true,
-				(1, -1)  => true,
-				_ => {
-					false
-				}
-			}
-		} else {
-			match (rx, ry) {
-				(0, -1)  => true,
-				(0, 1)   => true,
-				(-1, 0)  => true,
-				(1, 0)   => true,
-				(-1, 1)  => true,
-				(1, 1)   => true,
-				_ => {
-						false
-				}
+		match (rx, ry) {
+			(0, -1)  => true,
+			(0, 1)   => true,
+			(-1, 0)  => true,
+			(1, 0)   => true,
+			(-1, -1) => true,
+			(1, 1)  => true,
+			_ => {
+				false
 			}
 		}
 	}
@@ -158,10 +142,10 @@ pub impl Position {
 		match direction {
 			N => Position { x: self.x, y: self.y - 1 },
 			S => Position { x: self.x, y: self.y + 1 },
-			NE => Position { x: self.x + 1 , y: self.y - mymod((self.x + 1), 2)},
-			SE => Position { x: self.x + 1, y: self.y + mymod(self.x, 2) },
-			NW => Position { x: self.x - 1 , y: self.y - mymod((self.x + 1), 2)},
-			SW => Position { x: self.x - 1, y: self.y + mymod(self.x, 2) }
+			SW => Position { x: self.x - 1, y: self.y },
+			NE => Position { x: self.x + 1, y: self.y },
+			NW => Position { x: self.x - 1, y: self.y - 1 },
+			SE => Position { x: self.x + 1, y: self.y + 1 }
 		}
 	}
 }

@@ -33,36 +33,20 @@ fn load_or_die(file : ~str) -> ~video::Surface {
 	}
 }
 
-fn draw_each(screen : &video::Surface, map : &mut map::Map,
-	f : &a/fn(position : map::Position, tile : map::Tile) -> Option<&a/video::Surface>)
-{
-	do map.each() | position : map::Position, tile : &mut map::Tile | {
-		match f(position , *tile) {
-			None => {},
-			Some(surface) => if !screen.blit_surface_rect(
-					surface,
-					&Rect {
-						x: 0, y: 0,
-						w: map::HEX_FULL_WIDTH as u16,
-						h: map::HEX_FULL_HEIGHT as u16
-					},
-					&position.to_rect()
-				) { die!(~"Failed blit_surface_rect") }
-		};
+fn draw_each_on_view(
+		screen : &video::Surface,
+		view : &View,
+		pos : &Position,
+		map : &mut map::Map,
+		f : &a/fn(position : map::Position, tile : map::Tile) -> Option<&a/video::Surface>)
+	{
+		do map.each_in_vrect(pos, 5, 5) | position : map::Position, tile : &mut map::Tile | {
+			match f(position , *tile) {
+				None => {},
+				Some(surface) => view.draw(screen, &position, surface)
+			};
+		}
 	}
-}
-
-fn draw(screen: &video::Surface, position : map::Position, surface : &video::Surface) {
-	if !screen.blit_surface_rect(
-			surface,
-			&Rect {
-			x: 0, y: 0,
-			w: map::HEX_FULL_WIDTH as u16,
-			h: map::HEX_FULL_HEIGHT as u16
-		},
-		&position.to_rect()
-	) { die!(~"Failed blit_surface_rect") }
-}
 
 fn main() {
 	io::print("Hi!\n");
@@ -82,7 +66,6 @@ fn main() {
 
 	};
 
-
 	let fog = load_or_die(~"fog");
 	let floor = load_or_die(~"floor");
 	let wall = load_or_die(~"wall");
@@ -100,14 +83,16 @@ fn main() {
 
 		screen.fill(0);
 
-		do draw_each(screen, map) | _ : map::Position, tile : map::Tile| {
+		let view = player.view();
+
+		do draw_each_on_view(screen, &*view, &player.position, map) | _ : map::Position, tile : map::Tile| {
 			if tile.is_wall() {
 				Some(&*wall)
 			} else {
 				Some(&*floor)
 			}
 		}
-		do draw_each(screen, map) |position : map::Position, _ : map::Tile| {
+		do draw_each_on_view(screen, &*view, &player.position, map) |position : map::Position, _ : map::Tile| {
 			if !player.sees(&position) {
 				Some(&*notvisibe)
 			} else {
@@ -115,11 +100,12 @@ fn main() {
 			}
 		}
 
-		draw(screen, player.wrap_position(&player.position()), human);
+		view.draw(screen, &player.position, human);
 
-		do draw_each(screen, map) |position : map::Position, _ : map::Tile| {
+		do draw_each_on_view(screen, &*view, &player.position, map) |position : map::Position, _ : map::Tile| {
 			if !player.knowns(&position) {
-				Some(&*fog)
+				//Some(&*fog)
+				Some(&*notvisibe)
 			} else {
 				None
 			}

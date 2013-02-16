@@ -6,6 +6,8 @@ use core::cmp::Eq;
 use core::vec;
 use core::int::*;
 
+use sdl::video;
+
 #[deriving_eq]
 enum Direction {
 	N = 0,
@@ -44,6 +46,12 @@ pub struct Map {
 	width: uint,
 	height : uint
 }
+
+pub struct View {
+	x_offset : int,
+	y_offset : int
+}
+
 
 pub const HEX_BASE_HEIGHT: uint = 35;
 pub const HEX_BASE_WIDTH: uint = 20;
@@ -96,6 +104,10 @@ pub impl Position : Eq {
 }
 
 pub impl Position {
+
+	pure fn relative_to(&self, pos : &Position) -> ~Position {
+		~Position{ x: self.x - pos.x, y: self.y - pos.y}
+	}
 
 	pure fn to_pix_x(&self) -> uint {
 		self.x as uint * (HEX_BASE_WIDTH + HEX_SIDE_WIDTH)
@@ -150,6 +162,30 @@ pub impl Position {
 	}
 }
 
+pub impl View {
+	static fn new(x : int, y : int) -> ~View {
+		~View{ x_offset: x, y_offset: y }
+	}
+
+	fn draw(&self, screen: &video::Surface, position : &Position, surface : &video::Surface) {
+		let mut drect = position.to_rect();
+		drect.x += self.x_offset as i16;
+		drect.y += self.y_offset as i16;
+		if !screen.blit_surface_rect(
+				surface,
+				&Rect {
+				x: 0, y: 0,
+				w: HEX_FULL_WIDTH as u16,
+				h: HEX_FULL_HEIGHT as u16
+			},
+			&drect
+		) { die!(~"Failed blit_surface_rect") }
+	}
+
+}
+
+
+
 /*
 pure fn mymod(x :int, m : int) -> int {
 	let r = x%m;
@@ -167,6 +203,13 @@ pub impl Creature {
 			map_visible: None, map_known: None,
 			map_width: 0, map_height: 0
 		}
+	}
+
+	fn view(&self) -> ~View {
+		View::new(
+				200 - self.position.to_pix_x() as int,
+				200 - self.position.to_pix_y() as int
+		)
 	}
 
 	fn set_map(&mut self, map : @mut Map) {
@@ -362,11 +405,26 @@ pub impl Map {
 		let p = self.wrap_position(position);
 		self.map[p.x][p.y]
 	}
+	fn mut_at(&mut self, position : &Position) -> &self/mut Tile {
+		let p = self.wrap_position(position);
+		&mut self.map[p.x][p.y]
+	}
 
 	fn each(&mut self, f : &fn(position : Position, &mut Tile)) {
 		for range(0, self.width as int) |x| {
 			for range(0, self.height as int) |y| {
 				f(Position {x: x as int, y: y as int}, &mut self.map[x][y]);
+			}
+		}
+	}
+	fn each_in_vrect(&mut self, cp : &Position, rx : int, ry : int,
+			f : &fn(position : Position, &mut Tile)) {
+		for range(-rx, rx) |vx| {
+			for range(-ry, ry as int) |vy| {
+				let x = cp.x + vx;
+				let y = cp.y + vy + (vx >> 1);
+				let p = Position {x: x as int, y: y as int};
+				f(p, self.mut_at(&p));
 			}
 		}
 	}

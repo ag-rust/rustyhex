@@ -6,7 +6,6 @@ use map::*;
 
 use core::str;
 use core::io;
-use core::uint::range;
 use core::libc::{c_char};
 use sdl::sdl;
 use sdl::ll;
@@ -33,23 +32,7 @@ fn load_or_die(file : ~str) -> ~video::Surface {
 	}
 }
 
-fn draw_each_on_view(
-		screen : &video::Surface,
-		view : &View,
-		pos : &Position,
-		map : &RelativeMap,
-		f : &a/fn(position : map::Position, tile : map::Tile) -> Option<&a/video::Surface>)
-	{
-		do each_in_vrect(map, pos, 5, 5) | position : map::Position, tile : map::Tile | {
-			match f(position , tile) {
-				None => {},
-				Some(surface) => view.draw(screen, &position, surface)
-			};
-		}
-	}
-
 fn main() {
-	io::print("Hi!\n");
 	sdl::sdl::init(&[sdl::sdl::InitEverything]);
 
 	let screen = match video::set_video_mode(
@@ -63,15 +46,18 @@ fn main() {
 			io::print(str);
 			return;
 		}
-
 	};
 
-	let fog = load_or_die(~"fog");
 	let floor = load_or_die(~"floor");
+	let floor_shadow = load_or_die(~"floor-shadow");
 	let wall = load_or_die(~"wall");
-	let notvisibe = load_or_die(~"notvisible");
+	let wall_shadow = load_or_die(~"wall-shadow");
 	let human = load_or_die(~"human");
 
+	let view = ~View {
+		x_offset: (SCREEN_WIDTH - HEX_FULL_WIDTH) as int / 2,
+		y_offset: (SCREEN_HEIGHT - HEX_FULL_HEIGHT) as int * 5 / 6
+		};
 	let map = map::Map::new();
 
 	let player = Creature::new(Position {x: 0, y: 0}, N);
@@ -79,38 +65,51 @@ fn main() {
 	player.set_map(map);
 
 	loop {
+		screen.fill(0);
+
 		player.update_visibility();
 
-		screen.fill(0);
 		let relmap = RelativeMap::new(map, &player.position, player.direction);
 
-		let p = Position{x: 0, y: 0};
-
-		let view = ~View { x_offset: 400, y_offset: 400 };
-
-		do draw_each_on_view(screen, &*view, &p, relmap) | _ : map::Position, tile : map::Tile| {
-			if tile.is_wall() {
-				Some(&*wall)
-			} else {
-				Some(&*floor)
+		do player.each_in_front() | pos : &map::Position | {
+			let tpos = &relmap.translate(pos);
+			if player.sees(tpos) {
+				let t = relmap.at(pos);
+				if !t.is_wall() {
+					view.draw(screen, pos, floor)
+				}
 			}
 		}
-		do draw_each_on_view(screen, &*view, &p, relmap) |position : map::Position, _ : map::Tile| {
-			if !player.sees(&relmap.translate(&position)) {
-				Some(&*notvisibe)
-			} else {
-				None
+		do player.each_in_front() | pos : &map::Position | {
+			let tpos = &relmap.translate(pos);
+			if player.sees(tpos) {
+				let t = relmap.at(pos);
+				if t.is_wall() {
+					view.draw(screen, pos, wall)
+				}
+			}
+		}
+		do player.each_in_front | pos : &map::Position | {
+			let tpos = &relmap.translate(pos);
+			if player.knows(tpos) && !player.sees(tpos) {
+				let t = relmap.at(pos);
+				if !t.is_wall() {
+					view.draw(screen, pos, floor_shadow)
+				}
 			}
 		}
 
-		view.draw(screen, &p, human);
-		do draw_each_on_view(screen, &*view, &p, relmap) |position : map::Position, _ : map::Tile| {
-			if !player.knows(&relmap.translate(&position)) {
-				Some(&*fog)
-			} else {
-				None
+		do player.each_in_front() | pos : &map::Position | {
+			let tpos = &relmap.translate(pos);
+			if player.knows(tpos) && !player.sees(tpos) {
+				let t = relmap.at(pos);
+				if t.is_wall() {
+					view.draw(screen, pos, wall_shadow)
+				}
 			}
 		}
+
+		view.draw(screen, &Position {x:0,y:0}, human);
 
 		screen.flip();
 

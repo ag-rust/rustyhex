@@ -1,9 +1,9 @@
 pub use sdl::util::Rect;
 
-use core::uint::range;
+use core::int::*;
 use core::cast;
 use core::cmp::Eq;
-use core::ops::Add;
+use core::ops::{Add, Sub};
 use core::vec;
 use core::int::*;
 
@@ -39,8 +39,8 @@ pub enum Tile {
 	FLOOR
 }
 
-const MAP_WIDTH : uint = 16;
-const MAP_HEIGHT : uint = 16;
+const MAP_WIDTH : uint = 32;
+const MAP_HEIGHT : uint = 32;
 
 pub struct Map {
 	map : ~[ ~[ Tile ] ],
@@ -51,7 +51,6 @@ pub struct Map {
 trait MapView {
 	fn at(&self, pos: &Position) -> Tile;
 	fn translate(&self, pos : &Position) -> Position;
-/*	fn at_mut(&mut self, pos: &Position) -> &self/mut Tile; */
 }
 
 /**
@@ -68,13 +67,14 @@ pub struct View {
 	y_offset : int
 }
 
+pub const HEX_BASE_HEIGHT: uint = 51;
+pub const HEX_BASE_WIDTH: uint = 29;
+pub const HEX_SIDE_WIDTH: uint = 15;
+pub const HEX_BORDER_HEIGHT: uint = 8;
+pub const HEX_BORDER_WIDTH: uint = 10;
 
-pub const HEX_BASE_HEIGHT: uint = 35;
-pub const HEX_BASE_WIDTH: uint = 20;
-pub const HEX_SIDE_WIDTH: uint = 10;
-pub const HEX_BORDER_HEIGHT: uint = 2;
-pub const HEX_BORDER_WIDTH: uint = 2;
-
+pub const HEX_BASE_HEIGHT_M: uint = HEX_BASE_HEIGHT - 1;
+pub const HEX_BASE_WIDTH_M: uint = HEX_BASE_WIDTH - 1;
 pub const HEX_FULL_WIDTH: uint = HEX_BASE_WIDTH + 2 * HEX_SIDE_WIDTH + HEX_BORDER_WIDTH;
 pub const HEX_FULL_HEIGHT: uint = HEX_BASE_HEIGHT + HEX_BORDER_HEIGHT;
 
@@ -125,27 +125,43 @@ pub impl Add<Position, Position> for Position {
 	}
 }
 
+pub impl Sub<Position, Position> for Position {
+	pure fn sub(&self, pos : &Position) -> Position {
+		Position {x: self.x - pos.x, y: self.y - pos.y }
+	}
+}
+
 pub impl Position {
 
 	pure fn relative_to(&self, pos : &Position) -> ~Position {
 		~Position{ x: self.x - pos.x, y: self.y - pos.y}
 	}
 
-	pure fn to_pix_x(&self) -> uint {
-		self.x as uint * (HEX_BASE_WIDTH + HEX_SIDE_WIDTH)
+	fn each_around(&self, up : int, down : int, left : int, right : int, f : &fn(position : &Position)) {
+		for range(self.y - up, self.y + down + 1) |vy| {
+			for range(self.x - left, self.x + right + 1) |vx| {
+				let x = vx;
+				let y = vy + ((vx - self.x) >> 1);
+				f (&Position {x: x, y: y});
+			}
+		}
 	}
 
-	pure fn to_pix_y(&self) -> uint {
-		(self.y as uint) * HEX_BASE_HEIGHT
-		- (self.x as uint) * HEX_BASE_HEIGHT / 2
+	pure fn to_pix_x(&self) -> int {
+		self.x * ((HEX_BASE_WIDTH_M + HEX_SIDE_WIDTH) as int)
 	}
 
-	pure fn to_pix_cx(&self) -> uint {
-		self.to_pix_x() + HEX_FULL_WIDTH / 2
+	pure fn to_pix_y(&self) -> int {
+		self.y * (HEX_BASE_HEIGHT_M  as int)
+		- (self.x  * (HEX_BASE_HEIGHT_M as int)) / 2
 	}
 
-	pure fn to_pix_cy(&self) -> uint {
-		self.to_pix_y() + HEX_FULL_HEIGHT / 2
+	pure fn to_pix_cx(&self) -> int {
+		self.to_pix_x() + (HEX_FULL_WIDTH as int) / 2
+	}
+
+	pure fn to_pix_cy(&self) -> int {
+		self.to_pix_y() + (HEX_FULL_HEIGHT as int) / 2
 	}
 
 	pure fn to_rect(&self) -> Rect {
@@ -203,21 +219,16 @@ pub impl View {
 			&drect
 		) { die!(~"Failed blit_surface_rect") }
 	}
-
 }
 
 
 
-/*
 pure fn mymod(x :int, m : int) -> int {
 	let r = x%m;
 	if r < 0 { r+m } else { r }
-}*/
-
-pure fn mymod(x :int, m : int) -> int {
-	((x % m) + m) % m
 }
 
+const PLAYER_VIEW: int = 10;
 pub impl Creature {
 	static fn new(position : Position, direction : Direction) -> ~mut Creature {
 		~mut Creature {
@@ -227,13 +238,6 @@ pub impl Creature {
 		}
 	}
 
-	fn view(&self) -> ~View {
-		View::new(
-				200 - self.position.to_pix_x() as int,
-				200 - self.position.to_pix_y() as int
-		)
-	}
-
 	fn set_map(&mut self, map : @mut Map) {
 		self.map = Some(map);
 		self.map_width= map.width;
@@ -241,6 +245,10 @@ pub impl Creature {
 
 		self.map_visible = Some(vec::from_elem(map.width, vec::from_elem(map.height, false)));
 		self.map_known = Some(vec::from_elem(map.width, vec::from_elem(map.height, false)));
+	}
+
+	fn each_in_front(&self, f : &fn(position : &Position)) {
+		Position{x:0,y:0}.each_around(PLAYER_VIEW, 1, PLAYER_VIEW, PLAYER_VIEW, f)
 	}
 
 	fn with_map(&mut self, f : &fn (map : &mut Map)) {
@@ -288,7 +296,7 @@ pub impl Creature {
 			self.map_visible = Some(vec::from_elem(map.width, vec::from_elem(map.height, false)));
 		}
 
-		self.do_view(&self.position, self.direction, None, 15);
+		self.do_view(&self.position, self.direction, None, PLAYER_VIEW as uint);
 	}
 
 	fn turn_right(&mut self) {
@@ -346,18 +354,6 @@ pub impl Creature {
 			None => {}
 		}
 	}
-/*
-	pure fn sees_relative(&self, relpos: &Position) -> bool {
-		let pos = Position { x: relpos.x + self.position.x, y: relpos.y + self.position.y };
-		let p = self.wrap_position(&pos);
-
-		match self.map_visible {
-			Some(ref visible) => {
-				visible[p.x][p.y]
-			},
-			None => false
-		}
-	}*/
 
 	pure fn sees(&self, pos: &Position) -> bool {
 		let p = self.wrap_position(pos);
@@ -418,15 +414,8 @@ pub impl MapView for Map {
 	fn translate(&self, pos : &Position) -> Position {
 		*pos
 	}
-/*
-	fn at_mut(&mut self, pos: &Position) -> &self/mut Tile {
-		let p = self.wrap_position(pos);
-		&mut self.map[p.x][p.y]
-	}
-*/
-
-	
 }
+
 fn each_in_vrect<T: MapView>(s: &T, cp : &Position, rx : int, ry : int, f : &fn(position : Position, t: Tile)) {
 	for range(-rx, rx + 1) |vx| {
 		for range(-ry, ry + 1) |vy| {
@@ -512,10 +501,4 @@ pub impl MapView for RelativeMap {
 			}
 		}
 	}
-
-	/*
-	fn at_mut(&mut self, pos: &Position) -> &self/mut Tile {
-		self.map.at_mut(pos)
-	}
-	*/
 }

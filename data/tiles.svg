@@ -17,14 +17,13 @@
    sodipodi:docname="tiles.svg">
   <defs
      id="defs4">
-    <filter
-       inkscape:collect="always"
-       id="filter3855">
-      <feGaussianBlur
-         inkscape:collect="always"
-         stdDeviation="1.6504081"
-         id="feGaussianBlur3857" />
-    </filter>
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="0 : 526.18109 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_z="744.09448 : 526.18109 : 1"
+       inkscape:persp3d-origin="372.04724 : 350.78739 : 1"
+       id="perspective2987" />
   </defs>
   <sodipodi:namedview
      id="base"
@@ -33,17 +32,29 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="5.6568542"
-     inkscape:cx="73.02368"
-     inkscape:cy="740.55064"
+     inkscape:zoom="7.9195959"
+     inkscape:cx="218.31499"
+     inkscape:cy="631.20738"
      inkscape:document-units="px"
-     inkscape:current-layer="layer3"
-     showgrid="false"
+     inkscape:current-layer="layer2"
+     showgrid="true"
+     guidetolerance="4"
+     gridtolerance="7"
+     objecttolerance="4"
      inkscape:window-width="1920"
      inkscape:window-height="1024"
      inkscape:window-x="0"
      inkscape:window-y="27"
-     inkscape:window-maximized="1" />
+     inkscape:window-maximized="1">
+    <inkscape:grid
+       type="xygrid"
+       id="grid2985"
+       empspacing="5"
+       visible="true"
+       enabled="true"
+       snapvisiblegridlinesonly="true"
+       dotted="true" />
+  </sodipodi:namedview>
   <metadata
      id="metadata7">
     <rdf:RDF>
@@ -60,42 +71,17 @@
      inkscape:groupmode="layer"
      id="layer2"
      inkscape:label="size"
-     style="display:inline">
+     style="display:none">
     <rect
-       style="fill:#000000;fill-opacity:1;stroke:none"
-       id="rect3804"
-       width="42"
-       height="38"
-       x="107.90224"
-       y="264.88992"
-       inkscape:export-filename="/home/dpc/lab/rust/rustyhex/data/notvisible.png"
-       inkscape:export-xdpi="91"
-       inkscape:export-ydpi="91" />
-    <g
-       id="g3987"
-       transform="translate(7.3482977,-3.9968088)">
-      <rect
-         y="259.62781"
-         x="101.46466"
-         height="56.517857"
-         width="9.999999"
-         id="rect3882"
-         style="opacity:0.47021945;fill:#00d900;fill-opacity:1;stroke:none;display:inline" />
-      <rect
-         y="259.62781"
-         x="111.46465"
-         height="56.517857"
-         width="20.17857"
-         id="rect3882-2"
-         style="opacity:0.47021945;fill:#d6d900;fill-opacity:1;stroke:none;display:inline" />
-      <rect
-         y="259.62781"
-         x="131.64322"
-         height="56.517857"
-         width="9.999999"
-         id="rect3882-0"
-         style="opacity:0.47021945;fill:#00d900;fill-opacity:1;stroke:none;display:inline" />
-    </g>
+       style="fill:#d6d6ff;fill-opacity:1;stroke:none"
+       id="rect3773"
+       width="69"
+       height="59"
+       x="205"
+       y="407.36218"
+       inkscape:export-filename="/home/dpc/lab/rust/rustyhex/data/floor-shadow.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90" />
   </g>
   <g
      inkscape:label="floor"
@@ -104,113 +90,79 @@
      style="display:inline">
     <path
        sodipodi:type="star"
-       style="fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:#670000;stroke-width:2.92021966;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-       id="path2987"
+       style="fill:#fff6f6;fill-opacity:1;stroke:#cccccc;stroke-width:6.22824001;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       id="path3003"
        sodipodi:sides="6"
-       sodipodi:cx="162.85715"
-       sodipodi:cy="244.50504"
-       sodipodi:r1="58.923161"
-       sodipodi:r2="51.028954"
-       sodipodi:arg1="1.0366138"
-       sodipodi:arg2="1.5602125"
+       sodipodi:cx="350"
+       sodipodi:cy="282.36218"
+       sodipodi:r1="180"
+       sodipodi:r2="155.88457"
+       sodipodi:arg1="1.5707963"
+       sodipodi:arg2="2.0943951"
        inkscape:flatsided="true"
        inkscape:rounded="0"
        inkscape:randomized="0"
-       d="m 192.85715,295.21932 -58.91987,0.62362 -29.99999,-50.71429 28.91986,-51.3379 58.91986,-0.62362 30,50.71429 z"
-       transform="matrix(0.34242441,0.00349659,-0.00349665,0.34241982,73.990923,199.59711)"
-       inkscape:export-filename="/home/dpc/lab/rust/rg/data/tile.bmp.png"
-       inkscape:export-xdpi="91.056686"
-       inkscape:export-ydpi="91.056686" />
-  </g>
-  <g
-     inkscape:groupmode="layer"
-     id="layer4"
-     inkscape:label="wall"
-     style="display:inline">
-    <path
-       sodipodi:type="star"
-       style="fill:#670000;fill-opacity:1;fill-rule:evenodd;stroke:#670000;stroke-width:2.92021966;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;display:inline"
-       id="path2987-8"
-       sodipodi:sides="6"
-       sodipodi:cx="162.85715"
-       sodipodi:cy="244.50504"
-       sodipodi:r1="58.923161"
-       sodipodi:r2="51.028954"
-       sodipodi:arg1="1.0366138"
-       sodipodi:arg2="1.5602125"
-       inkscape:flatsided="true"
-       inkscape:rounded="0"
-       inkscape:randomized="0"
-       d="m 192.85715,295.21932 -58.91987,0.62362 -29.99999,-50.71429 28.91986,-51.3379 58.91986,-0.62362 30,50.71429 z"
-       transform="matrix(0.34242441,0.00349659,-0.00349665,0.34241982,73.990923,199.59711)"
-       inkscape:export-filename="/home/dpc/lab/rust/rg/data/tile.bmp.png"
-       inkscape:export-xdpi="91.056686"
-       inkscape:export-ydpi="91.056686" />
+       d="m 350,462.36218 -155.88457,-89.99999 -1e-5,-180 L 350,102.36218 l 155.88457,90 1e-5,180 z"
+       transform="matrix(0,-0.16037507,0.16074314,0,194.11222,492.99346)" />
   </g>
   <g
      inkscape:groupmode="layer"
      id="layer3"
-     inkscape:label="fog"
-     style="display:inline">
+     inkscape:label="wall"
+     style="display:none">
     <path
        sodipodi:type="star"
-       style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:2.92021966;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;display:inline;filter:url(#filter3855)"
-       id="path2987-46"
+       style="fill:#804d00;fill-opacity:1;stroke:#804d00;stroke-width:6.22824001;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       id="path3003-3"
        sodipodi:sides="6"
-       sodipodi:cx="162.85715"
-       sodipodi:cy="244.50504"
-       sodipodi:r1="58.923161"
-       sodipodi:r2="51.028954"
-       sodipodi:arg1="1.0366138"
-       sodipodi:arg2="1.5602125"
+       sodipodi:cx="350"
+       sodipodi:cy="282.36218"
+       sodipodi:r1="180"
+       sodipodi:r2="155.88457"
+       sodipodi:arg1="1.5707963"
+       sodipodi:arg2="2.0943951"
        inkscape:flatsided="true"
        inkscape:rounded="0"
        inkscape:randomized="0"
-       d="m 192.85715,295.21932 -58.91987,0.62362 -29.99999,-50.71429 28.91986,-51.3379 58.91986,-0.62362 30,50.71429 z"
-       transform="matrix(0.34242441,0.00349659,-0.00349665,0.34241982,73.990923,199.59711)"
-       inkscape:export-filename="/home/dpc/lab/rust/rg/data/fog.png"
-       inkscape:export-xdpi="91.056686"
-       inkscape:export-ydpi="91.056686" />
+       d="m 350,462.36218 -155.88457,-89.99999 -1e-5,-180 L 350,102.36218 l 155.88457,90 1e-5,180 z"
+       transform="matrix(0,-0.16037507,0.16074314,0,194.11222,492.99346)" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer4"
+     inkscape:label="shadow"
+     style="display:inline">
+    <path
+       sodipodi:type="star"
+       style="opacity:0.60500004;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:6.22824001;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       id="path3003-3-3"
+       sodipodi:sides="6"
+       sodipodi:cx="350"
+       sodipodi:cy="282.36218"
+       sodipodi:r1="180"
+       sodipodi:r2="155.88457"
+       sodipodi:arg1="1.5707963"
+       sodipodi:arg2="2.0943951"
+       inkscape:flatsided="true"
+       inkscape:rounded="0"
+       inkscape:randomized="0"
+       d="m 350,462.36218 -155.88457,-89.99999 -1e-5,-180 L 350,102.36218 l 155.88457,90 1e-5,180 z"
+       transform="matrix(0,-0.16037507,0.16074314,0,194.11198,492.99346)" />
   </g>
   <g
      inkscape:groupmode="layer"
      id="layer5"
-     inkscape:label="notvisible"
-     style="display:inline">
-    <path
-       sodipodi:type="star"
-       style="opacity:0.5;fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:2.92021966;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;display:inline"
-       id="path2987-46-3"
-       sodipodi:sides="6"
-       sodipodi:cx="162.85715"
-       sodipodi:cy="244.50504"
-       sodipodi:r1="58.923161"
-       sodipodi:r2="51.028954"
-       sodipodi:arg1="1.0366138"
-       sodipodi:arg2="1.5602125"
-       inkscape:flatsided="true"
-       inkscape:rounded="0"
-       inkscape:randomized="0"
-       d="m 192.85715,295.21932 -58.91987,0.62362 -29.99999,-50.71429 28.91986,-51.3379 58.91986,-0.62362 30,50.71429 z"
-       transform="matrix(0.34242441,0.00349659,-0.00349665,0.34241982,73.990923,199.59711)"
-       inkscape:export-filename="/home/dpc/lab/rust/rg/data/fog.png"
-       inkscape:export-xdpi="91.056686"
-       inkscape:export-ydpi="91.056686" />
-  </g>
-  <g
-     inkscape:groupmode="layer"
-     id="layer6"
-     inkscape:label="hero"
-     style="display:inline">
+     inkscape:label="human"
+     style="display:none">
     <path
        sodipodi:type="arc"
-       style="fill:#090075;fill-opacity:1;stroke:#000000;stroke-width:1.33167839;stroke-opacity:1"
-       id="path3023"
-       sodipodi:cx="86"
-       sodipodi:cy="283.11218"
-       sodipodi:rx="18.625"
-       sodipodi:ry="18.625"
-       d="m 104.625,283.11218 a 18.625,18.625 0 1 1 -37.25,0 18.625,18.625 0 1 1 37.25,0 z"
-       transform="matrix(0.72573307,0,0,0.72573307,66.489193,78.426054)" />
+       style="fill:#0084c8;fill-opacity:1;stroke:#000000;stroke-width:0.66666663;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       id="path3833"
+       sodipodi:cx="145"
+       sodipodi:cy="412.36218"
+       sodipodi:rx="10"
+       sodipodi:ry="10"
+       d="m 155,412.36218 a 10,10 0 1 1 -20,0 10,10 0 1 1 20,0 z"
+       transform="matrix(1.5,0,0,1.5,22,-181.68109)" />
   </g>
 </svg>

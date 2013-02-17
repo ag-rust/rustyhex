@@ -48,11 +48,7 @@ fn main() {
 		}
 	};
 
-	let floor = load_or_die(~"floor");
-	let floor_shadow = load_or_die(~"floor-shadow");
-	let wall = load_or_die(~"wall");
-	let wall_shadow = load_or_die(~"wall-shadow");
-	let human = load_or_die(~"human");
+	let tiles = load_or_die(~"tiles");
 
 	let view = ~View {
 		x_offset: (SCREEN_WIDTH - HEX_FULL_WIDTH) as int / 2,
@@ -73,43 +69,24 @@ fn main() {
 
 		do player.each_in_front() | pos : &map::Position | {
 			let tpos = &relmap.translate(pos);
-			if player.sees(tpos) {
+			if player.knows(tpos) {
 				let t = relmap.at(pos);
-				if !t.is_wall() {
-					view.draw(screen, pos, floor)
-				}
-			}
-		}
-		do player.each_in_front() | pos : &map::Position | {
-			let tpos = &relmap.translate(pos);
-			if player.sees(tpos) {
-				let t = relmap.at(pos);
-				if t.is_wall() {
-					view.draw(screen, pos, wall)
-				}
-			}
-		}
-		do player.each_in_front | pos : &map::Position | {
-			let tpos = &relmap.translate(pos);
-			if player.knows(tpos) && !player.sees(tpos) {
-				let t = relmap.at(pos);
-				if !t.is_wall() {
-					view.draw(screen, pos, floor_shadow)
+
+				do HexFragment::each |&frag| {
+					let nt = match frag.to_direction() {
+						Some(dir) => {
+							relmap.at(&pos.neighbor(dir))
+						},
+						None =>
+							t
+						};
+					let sprite = Sprite::from_tiles(t, nt, player.sees(tpos));
+					view.draw_fragment(screen, tiles, pos, sprite, frag);
 				}
 			}
 		}
 
-		do player.each_in_front() | pos : &map::Position | {
-			let tpos = &relmap.translate(pos);
-			if player.knows(tpos) && !player.sees(tpos) {
-				let t = relmap.at(pos);
-				if t.is_wall() {
-					view.draw(screen, pos, wall_shadow)
-				}
-			}
-		}
-
-		view.draw(screen, &Position {x:0,y:0}, human);
+		view.draw_sprite(screen, tiles, &Position {x:0,y:0}, Sprite::human());
 
 		screen.flip();
 

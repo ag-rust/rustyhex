@@ -1,16 +1,15 @@
-pub use sdl::util::Rect;
-
 use core::int::*;
 use core::cast;
 use core::cmp::Eq;
 use core::ops::{Add, Sub};
 use core::vec;
-use core::int::*;
 
+use sdl;
 use sdl::video;
+use sdl::{Rect};
 
 #[deriving_eq]
-enum Direction {
+pub enum Direction {
 	N = 0,
 	NE,
 	SE,
@@ -48,7 +47,7 @@ pub struct Map {
 	height : uint
 }
 
-trait MapView {
+pub trait MapView {
 	fn at(&self, pos: &Position) -> Tile;
 	fn translate(&self, pos : &Position) -> Position;
 }
@@ -324,15 +323,15 @@ pub impl View {
 		let mut drect = position.to_rect();
 		drect.x += self.x_offset as i16;
 		drect.y += self.y_offset as i16;
-		if !screen.blit_surface_rect(
+		if !screen.blit_rect(
 				surface,
-				&Rect {
-				x: 0, y: 0,
-				w: HEX_FULL_WIDTH as u16,
-				h: HEX_FULL_HEIGHT as u16
-			},
-			&drect
-		) { die!(~"Failed blit_surface_rect") }
+				Some(Rect {
+					x: 0, y: 0,
+					w: HEX_FULL_WIDTH as u16,
+					h: HEX_FULL_HEIGHT as u16
+				}),
+				Some(drect)
+		) { fail!(~"Failed blit_surface_rect") }
 	}
 
 	fn draw_sprite(&self, dsurf: &video::Surface, ssurf: &video::Surface,
@@ -343,11 +342,11 @@ pub impl View {
 		drect.x += self.x_offset as i16;
 		drect.y += self.y_offset as i16;
 
-		if !dsurf.blit_surface_rect(
+		if !dsurf.blit_rect(
 				ssurf,
-				&srect,
-			&drect
-		) { die!(~"Failed blit_surface_rect") }
+				Some(srect),
+				Some(drect)
+		) { fail!(~"Failed blit_surface_rect") }
 	}
 
 	fn draw_fragment(&self, dsurf: &video::Surface, ssurf: &video::Surface,
@@ -369,11 +368,11 @@ pub impl View {
 		drect.x += self.x_offset as i16;
 		drect.y += self.y_offset as i16;
 
-		if !dsurf.blit_surface_rect(
+		if !dsurf.blit_rect(
 				ssurf,
-				&srect,
-			&drect
-		) { die!(~"Failed blit_surface_rect") }
+				Some(srect),
+				Some(drect)
+		) { fail!(~"Failed blit_surface_rect") }
 	}
 }
 
@@ -383,6 +382,18 @@ pure fn mymod(x :int, m : int) -> int {
 	let r = x%m;
 	if r < 0 { r+m } else { r }
 }
+
+macro_rules! if_map(
+	($v:ident, $inp:expr) => (
+	{
+		let maybe_map = self.map;
+		match (maybe_map) {
+			Some($v) => $inp,
+			_ => {}
+		}
+	}
+	);
+)
 
 const PLAYER_VIEW: int = 10;
 pub impl Creature {
@@ -407,12 +418,13 @@ pub impl Creature {
 		Position{x:0,y:0}.each_around(PLAYER_VIEW, 1, PLAYER_VIEW, PLAYER_VIEW, f)
 	}
 
-	fn with_map(&mut self, f : &fn (map : &mut Map)) {
+	fn with_map(&self, f : &fn (map : @mut Map)) {
 		match self.map {
 			Some(map) => f(map),
 			None => {}
 		}
 	}
+
 
 	fn do_view(&mut self, pos: &Position, dir : Direction,
 		pdir : Option<Direction>, depth: uint) {
@@ -435,24 +447,27 @@ pub impl Creature {
 				~[dir, dir.left(), dir.right()]
 			}
 		};
-
-		do self.with_map |map| {
+		
+		if_map!(map, {
 			if map.at(pos).can_see_through() {
 				for neighbors.each |&d| {
 					let n = pos.neighbor(d);
 					self.do_view(&n, d, Some(dir), depth - 1);
 				}
 			}
-		}
+		});
 	}
 
 	fn update_visibility(&mut self) {
 
-		do self.with_map |map| {
+		if_map!(map, {
 			self.map_visible = Some(vec::from_elem(map.width, vec::from_elem(map.height, false)));
-		}
+		});
 
-		self.do_view(&self.position, self.direction, None, PLAYER_VIEW as uint);
+		let position = copy self.position;
+		let direction = copy self.direction;
+
+		self.do_view(&position, direction, None, PLAYER_VIEW as uint);
 	}
 
 	fn turn_right(&mut self) {
@@ -464,21 +479,21 @@ pub impl Creature {
 	}
 
 	fn move_forward(&mut self) {
-		do self.with_map() | map | {
+		if_map!(map, {
 			let new_position = self.position.neighbor(self.direction);
 			if (map.at(&new_position).is_passable()) {
 				self.position = new_position;
 			}
-		}
+		})
 	}
 
 	fn move_backwards(&mut self) {
-		do self.with_map() | map | {
+		if_map!(map, {
 			let new_position = self.position.neighbor(self.direction.opposite());
 			if (map.at(&new_position).is_passable()) {
 				self.position = new_position;
 			}
-		}
+		})
 	}
 
 	pure fn wrap_position(&self, pos : &Position) -> Position {

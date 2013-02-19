@@ -96,7 +96,6 @@ struct Sprite {
 	y : uint
 }
 
-
 pub impl HexFragment {
 
 	static fn each(f : &fn(position : &HexFragment)) {
@@ -384,15 +383,15 @@ pure fn mymod(x :int, m : int) -> int {
 }
 
 macro_rules! if_map(
-	($v:ident, $inp:expr) => (
+	(|$v:ident| $inexp:expr ) => (
 	{
 		let maybe_map = self.map;
 		match (maybe_map) {
-			Some($v) => $inp,
+			Some($v) => $inexp,
 			_ => {}
-		}
+		};
 	}
-	);
+	)
 )
 
 const PLAYER_VIEW: int = 10;
@@ -448,20 +447,20 @@ pub impl Creature {
 			}
 		};
 		
-		if_map!(map, {
+		if_map!(|map| { {
 			if map.at(pos).can_see_through() {
 				for neighbors.each |&d| {
 					let n = pos.neighbor(d);
 					self.do_view(&n, d, Some(dir), depth - 1);
 				}
-			}
+			} }
 		});
 	}
 
 	fn update_visibility(&mut self) {
 
-		if_map!(map, {
-			self.map_visible = Some(vec::from_elem(map.width, vec::from_elem(map.height, false)));
+		if_map!(|map| {
+			self.map_visible = Some(vec::from_elem(map.width, vec::from_elem(map.height, false)))
 		});
 
 		let position = copy self.position;
@@ -479,16 +478,16 @@ pub impl Creature {
 	}
 
 	fn move_forward(&mut self) {
-		if_map!(map, {
+		if_map!(|map| {
 			let new_position = self.position.neighbor(self.direction);
 			if (map.at(&new_position).is_passable()) {
 				self.position = new_position;
 			}
-		})
+		});
 	}
 
 	fn move_backwards(&mut self) {
-		if_map!(map, {
+		if_map!(|map| {
 			let new_position = self.position.neighbor(self.direction.opposite());
 			if (map.at(&new_position).is_passable()) {
 				self.position = new_position;

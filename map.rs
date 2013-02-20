@@ -66,119 +66,37 @@ pub struct View {
 	y_offset : int
 }
 
-pub const HEX_BASE_WIDTH: uint = 29;
-pub const HEX_BASE_HEIGHT: uint = 22;
-pub const HEX_BASE_FRAG_WIDTH: uint = HEX_BASE_WIDTH;
-pub const HEX_BASE_FRAG_HEIGHT : uint = 14;
-pub const HEX_LSIDE_FRAG_WIDTH: uint = 16;
-pub const HEX_RSIDE_FRAG_WIDTH: uint = 15;
-pub const HEX_SIDE_FRAG_HEIGHT : uint = 25;
-pub const HEX_BORDER_WIDTH: uint = 4;
-pub const HEX_BORDER_HEIGHT: uint = 4;
-pub const HEX_WIDTH: uint = HEX_BASE_WIDTH + HEX_LSIDE_FRAG_WIDTH + HEX_RSIDE_FRAG_WIDTH;
-pub const HEX_HEIGHT: uint = HEX_BASE_HEIGHT + 2 * HEX_BASE_FRAG_HEIGHT;
+pub const HEX_WIDTH: uint = 66;
+pub const HEX_HEIGHT: uint = 56;
+pub const HEX_SIDE_WIDTH: uint = 16;
+pub const HEX_BORDER_WIDTH:  uint = 5;
+pub const HEX_BORDER_HEIGHT: uint = 5;
 
-pub const HEX_FULL_WIDTH: uint = HEX_BASE_WIDTH + HEX_LSIDE_FRAG_WIDTH + HEX_RSIDE_FRAG_WIDTH + 2 * HEX_BORDER_WIDTH;
-pub const HEX_FULL_HEIGHT: uint = HEX_BASE_HEIGHT + 2 * HEX_BASE_FRAG_HEIGHT + 2 * HEX_BORDER_HEIGHT;
+pub const HEX_FULL_WIDTH: uint = HEX_WIDTH + 2 * HEX_BORDER_WIDTH;
+pub const HEX_FULL_HEIGHT: uint = HEX_HEIGHT + 2 * HEX_BORDER_HEIGHT;
 
-enum HexFragment {
-	HF_N = 0,
-	HF_NE,
-	HF_SE,
-	HF_S,
-	HF_SW,
-	HF_NW,
-	HF_BASE
-}
 
 struct Sprite {
 	x : uint,
 	y : uint
 }
 
-pub impl HexFragment {
-
-	static fn each(f : &fn(position : &HexFragment)) {
-		f(&HF_N);
-		f(&HF_NE);
-		f(&HF_SE);
-		f(&HF_S);
-		f(&HF_SW);
-		f(&HF_NW);
-		f(&HF_BASE);
-	}
-
-	fn to_direction(&self) -> Option<Direction> {
-		match (*self) {
-			HF_N => Some(N),
-			HF_NE => Some(NE),
-			HF_SE => Some(SE),
-			HF_S => Some(S),
-			HF_SW => Some(SW),
-			HF_NW => Some(NW),
-			HF_BASE => None
-		}
-	}
-
-	fn to_rect(&self) -> Rect {
-		match (*self) {
-			HF_N => Rect {
-				x: (HEX_BORDER_WIDTH + HEX_LSIDE_FRAG_WIDTH) as i16,
-				y: HEX_BORDER_HEIGHT as i16,
-				w: HEX_BASE_FRAG_WIDTH as u16, h: HEX_BASE_FRAG_HEIGHT as u16
-				},
-			HF_NE => Rect {
-				x: (HEX_BORDER_WIDTH + HEX_LSIDE_FRAG_WIDTH + HEX_BASE_WIDTH) as i16,
-				y: HEX_BORDER_HEIGHT as i16,
-				w: HEX_RSIDE_FRAG_WIDTH as u16, h: HEX_SIDE_FRAG_HEIGHT as u16
-				},
-			HF_SE => Rect {
-				x: (HEX_BORDER_WIDTH + HEX_LSIDE_FRAG_WIDTH + HEX_BASE_WIDTH) as i16,
-				y: (HEX_BORDER_HEIGHT+ HEX_SIDE_FRAG_HEIGHT) as i16,
-				w: HEX_RSIDE_FRAG_WIDTH as u16, h: HEX_SIDE_FRAG_HEIGHT as u16
-				},
-			HF_S => Rect {
-				x: (HEX_BORDER_WIDTH + HEX_LSIDE_FRAG_WIDTH) as i16,
-				y: (HEX_BORDER_HEIGHT + HEX_BASE_FRAG_HEIGHT + HEX_BASE_HEIGHT) as i16,
-				w: HEX_BASE_FRAG_WIDTH as u16, h: HEX_BASE_FRAG_HEIGHT as u16
-				},
-			HF_SW => Rect {
-				x: HEX_BORDER_WIDTH as i16,
-				y: (HEX_BORDER_HEIGHT + HEX_SIDE_FRAG_HEIGHT) as i16,
-				w: HEX_LSIDE_FRAG_WIDTH as u16, h: HEX_SIDE_FRAG_HEIGHT as u16
-				},
-			HF_NW => Rect {
-				x: HEX_BORDER_WIDTH as i16,
-				y: HEX_BORDER_HEIGHT as i16,
-				w: HEX_LSIDE_FRAG_WIDTH as u16, h: HEX_SIDE_FRAG_HEIGHT as u16
-				},
-			HF_BASE => Rect {
-				x: (HEX_BORDER_WIDTH + HEX_LSIDE_FRAG_WIDTH) as i16,
-				y: (HEX_BORDER_HEIGHT + HEX_BASE_FRAG_HEIGHT) as i16,
-				w: HEX_BASE_WIDTH as u16, h: HEX_BASE_HEIGHT as u16
-				}
-		}
-	}
-}
-
 pub impl Sprite {
-	static fn from_tiles(tile : Tile, ntile : Tile, visible : bool) -> Sprite {
-		let mut sprite = match (tile, ntile) {
-			(FLOOR, FLOOR) => Sprite{ x: 0, y: 0},
-			(FLOOR, WALL) => Sprite{ x: 1, y: 0},
-			(WALL, FLOOR) => Sprite{ x: 0, y: 1},
-			(WALL, WALL) => Sprite{ x: 1, y: 1}
-		};
 
-		if !visible {
-			sprite.x += 2;
+	static fn for_tile(tile : Tile, visible : bool) -> Sprite {
+		let mut spr = match tile {
+				FLOOR => Sprite{ x: 0, y: 1 },
+				WALL => Sprite{ x: 0, y: 2 }
+			};
+
+		if (!visible) {
+			spr.x += 1;
 		}
-
-		return sprite
+		spr
 	}
 
 	static fn human() -> Sprite {
-		Sprite{ x: 2, y: 2}
+		Sprite{ x: 1, y: 0 }
 	}
 
 	fn to_rect(&self) -> Rect {
@@ -261,7 +179,7 @@ pub impl Position {
 	}
 
 	pure fn to_pix_x(&self) -> int {
-		self.x * ((HEX_BASE_WIDTH + HEX_RSIDE_FRAG_WIDTH) as int) + HEX_BORDER_WIDTH as int
+		self.x * ((HEX_WIDTH - HEX_SIDE_WIDTH) as int) + HEX_BORDER_WIDTH as int
 	}
 
 	pure fn to_pix_y(&self) -> int {
@@ -280,8 +198,8 @@ pub impl Position {
 	pure fn to_rect(&self) -> Rect {
 		Rect {
 			x: self.to_pix_x() as i16, y: self.to_pix_y() as i16,
-			w: (HEX_BASE_WIDTH + HEX_LSIDE_FRAG_WIDTH + HEX_RSIDE_FRAG_WIDTH + 2 * HEX_BORDER_WIDTH) as u16,
-			h: (HEX_BASE_HEIGHT + 2 * HEX_BASE_FRAG_HEIGHT + 2 * HEX_BORDER_HEIGHT) as u16
+			w: (HEX_WIDTH + 2 * HEX_BORDER_WIDTH) as u16,
+			h: (HEX_HEIGHT + 2 * HEX_BORDER_HEIGHT) as u16
 		}
 	}
 
@@ -347,32 +265,6 @@ pub impl View {
 				Some(drect)
 		) { fail!(~"Failed blit_surface_rect") }
 	}
-
-	fn draw_fragment(&self, dsurf: &video::Surface, ssurf: &video::Surface,
-		pos : &Position, sprite : Sprite, frag : HexFragment) {
-		let mut drect = pos.to_rect();
-		let mut srect = sprite.to_rect();
-		let frect = frag.to_rect();
-
-		drect.x += frect.x;
-		drect.y += frect.y;
-		drect.w = frect.w;
-		drect.h = frect.h;
-
-		srect.x += frect.x;
-		srect.y += frect.y;
-		srect.w = frect.w;
-		srect.h = frect.h;
-
-		drect.x += self.x_offset as i16;
-		drect.y += self.y_offset as i16;
-
-		if !dsurf.blit_rect(
-				ssurf,
-				Some(srect),
-				Some(drect)
-		) { fail!(~"Failed blit_surface_rect") }
-	}
 }
 
 
@@ -414,7 +306,7 @@ pub impl Creature {
 	}
 
 	fn each_in_front(&self, f : &fn(position : &Position)) {
-		Position{x:0,y:0}.each_around(PLAYER_VIEW, 1, PLAYER_VIEW, PLAYER_VIEW, f)
+		Position{x:0,y:0}.each_around(PLAYER_VIEW, 2, PLAYER_VIEW, PLAYER_VIEW, f)
 	}
 
 	fn with_map(&self, f : &fn (map : @mut Map)) {

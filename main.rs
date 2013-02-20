@@ -52,7 +52,7 @@ fn sdl_main() {
 
 	let view = ~map::View {
 		x_offset: (SCREEN_WIDTH - map::HEX_FULL_WIDTH) as int / 2,
-		y_offset: (SCREEN_HEIGHT - map::HEX_FULL_HEIGHT) as int * 5 / 6
+		y_offset: (SCREEN_HEIGHT - map::HEX_FULL_HEIGHT) as int * 7 / 8
 		};
 	let map = map::Map::new();
 
@@ -71,18 +71,8 @@ fn sdl_main() {
 			let tpos = &relmap.translate(pos);
 			if player.knows(tpos) {
 				let t = relmap.at(pos);
-
-				do map::HexFragment::each |&frag| {
-					let nt = match frag.to_direction() {
-						Some(dir) => {
-							relmap.at(&pos.neighbor(dir))
-						},
-						None =>
-							t
-						};
-					let sprite = map::Sprite::from_tiles(t, nt, player.sees(tpos));
-					view.draw_fragment(screen, tiles, pos, sprite, frag);
-				}
+				let sprite = map::Sprite::for_tile(t, player.sees(tpos));
+				view.draw_sprite(screen, tiles, pos, sprite);
 			}
 		}
 

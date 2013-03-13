@@ -4,9 +4,6 @@ use core::cmp::Eq;
 use core::ops::{Add, Sub};
 use core::vec;
 
-use sdl::video;
-use sdl::{Rect};
-
 #[deriving_eq]
 pub enum Direction {
 	N = 0,
@@ -33,8 +30,8 @@ pub struct Creature {
 }
 
 pub enum Tile {
-	WALL,
-	FLOOR
+	FLOOR,
+	WALL
 }
 
 const MAP_WIDTH : uint = 32;
@@ -60,74 +57,28 @@ pub struct RelativeMap {
 	dir : Direction
 }
 
-pub struct View {
-	x_offset : int,
-	y_offset : int
-}
-
-pub const HEX_WIDTH: uint = 66;
-pub const HEX_HEIGHT: uint = 56;
-pub const HEX_SIDE_WIDTH: uint = 16;
-pub const HEX_BORDER_WIDTH:  uint = 5;
-pub const HEX_BORDER_HEIGHT: uint = 5;
-
-pub const HEX_FULL_WIDTH: uint = HEX_WIDTH + 2 * HEX_BORDER_WIDTH;
-pub const HEX_FULL_HEIGHT: uint = HEX_HEIGHT + 2 * HEX_BORDER_HEIGHT;
-
-
-struct Sprite {
-	x : uint,
-	y : uint
-}
-
-pub impl Sprite {
-
-	static fn for_tile(tile : Tile, visible : bool) -> Sprite {
-		let mut spr = match tile {
-				FLOOR => Sprite{ x: 0, y: 1 },
-				WALL => Sprite{ x: 0, y: 2 }
-			};
-
-		if (!visible) {
-			spr.x += 1;
-		}
-		spr
-	}
-
-	static fn human() -> Sprite {
-		Sprite{ x: 1, y: 0 }
-	}
-
-	fn to_rect(&self) -> Rect {
-		Rect {
-			x: (HEX_FULL_WIDTH * self.x) as i16,
-			y: (HEX_FULL_HEIGHT * self.y) as i16,
-			w: HEX_FULL_WIDTH as u16,
-			h: HEX_FULL_HEIGHT as u16
-		}
-	}
-}
-
 pub impl Direction {
-
 	pure fn right(&self) -> Direction {
 		unsafe {
-			cast::reinterpret_cast(&mymod((*self as int + 1), 6))
+			cast::reinterpret_cast(&modulo((*self as int + 1), 6))
 		}
 	}
+
 	pure fn left(&self) -> Direction {
 		unsafe {
-			cast::reinterpret_cast(&mymod((*self as int + 5), 6))
+			cast::reinterpret_cast(&modulo((*self as int + 5), 6))
 		}
 	}
+
 	pure fn turn(&self, i : int) -> Direction {
 		unsafe {
-			cast::reinterpret_cast(&mymod((*self as int + i), 6))
+			cast::reinterpret_cast(&modulo((*self as int + i), 6))
 		}
 	}
+
 	pure fn opposite(&self) -> Direction {
 		unsafe {
-			cast::reinterpret_cast(&mymod((*self as int + 3), 6))
+			cast::reinterpret_cast(&modulo((*self as int + 3), 6))
 		}
 	}
 
@@ -167,6 +118,7 @@ pub impl Position {
 		~Position{ x: self.x - pos.x, y: self.y - pos.y}
 	}
 
+	/* Iterate over every neighbor */
 	fn each_around(&self, up : int, down : int, left : int, right : int, f : &fn(position : &Position)) {
 		for range(self.y - up, self.y + down + 1) |vy| {
 			for range(self.x - left, self.x + right + 1) |vx| {
@@ -174,31 +126,6 @@ pub impl Position {
 				let y = vy + ((vx - self.x) >> 1);
 				f (&Position {x: x, y: y});
 			}
-		}
-	}
-
-	pure fn to_pix_x(&self) -> int {
-		self.x * ((HEX_WIDTH - HEX_SIDE_WIDTH) as int) + HEX_BORDER_WIDTH as int
-	}
-
-	pure fn to_pix_y(&self) -> int {
-		self.y * (HEX_HEIGHT  as int)
-		- (self.x  * (HEX_HEIGHT as int)) / 2 + HEX_BORDER_HEIGHT as int
-	}
-
-	pure fn to_pix_cx(&self) -> int {
-		self.to_pix_x() + (HEX_FULL_WIDTH as int) / 2
-	}
-
-	pure fn to_pix_cy(&self) -> int {
-		self.to_pix_y() + (HEX_FULL_HEIGHT as int) / 2
-	}
-
-	pure fn to_rect(&self) -> Rect {
-		Rect {
-			x: self.to_pix_x() as i16, y: self.to_pix_y() as i16,
-			w: (HEX_WIDTH + 2 * HEX_BORDER_WIDTH) as u16,
-			h: (HEX_HEIGHT + 2 * HEX_BORDER_HEIGHT) as u16
 		}
 	}
 
@@ -230,60 +157,26 @@ pub impl Position {
 	}
 }
 
-pub impl View {
-	static fn new(x : int, y : int) -> ~View {
-		~View{ x_offset: x, y_offset: y }
-	}
-
-	fn draw(&self, screen: &video::Surface, position : &Position, surface : &video::Surface) {
-		let mut drect = position.to_rect();
-		drect.x += self.x_offset as i16;
-		drect.y += self.y_offset as i16;
-		if !screen.blit_rect(
-				surface,
-				Some(Rect {
-					x: 0, y: 0,
-					w: HEX_FULL_WIDTH as u16,
-					h: HEX_FULL_HEIGHT as u16
-				}),
-				Some(drect)
-		) { fail!(~"Failed blit_surface_rect") }
-	}
-
-	fn draw_sprite(&self, dsurf: &video::Surface, ssurf: &video::Surface,
-		pos : &Position, sprite : Sprite) {
-		let mut drect = pos.to_rect();
-		let mut srect = sprite.to_rect();
-
-		drect.x += self.x_offset as i16;
-		drect.y += self.y_offset as i16;
-
-		if !dsurf.blit_rect(
-				ssurf,
-				Some(srect),
-				Some(drect)
-		) { fail!(~"Failed blit_surface_rect") }
-	}
-}
-
-
-
-pure fn mymod(x :int, m : int) -> int {
+pure fn modulo(x :int, m : int) -> int {
 	let r = x%m;
 	if r < 0 { r+m } else { r }
 }
 
+/*
+ * Creature helper to deal with
+ * optional map.
+ */
 macro_rules! if_map(
-	(|$v:ident| $inexp:expr ) => (
-	{
-		let maybe_map = self.map;
-		match (maybe_map) {
-			Some($v) => $inexp,
-			_ => {}
-		};
-	}
+		(|$v:ident| $inexp:expr ) => (
+		{
+			let maybe_map = self.map;
+			match (maybe_map) {
+				Some($v) => $inexp,
+				_ => {}
+			};
+		}
+		)
 	)
-)
 
 const PLAYER_VIEW: int = 10;
 pub impl Creature {
@@ -297,68 +190,13 @@ pub impl Creature {
 
 	fn set_map(&mut self, map : @mut Map) {
 		self.map = Some(map);
-		self.map_width= map.width;
-		self.map_height = map.width;
+		self.map_width = map.width;
+		self.map_height = map.height;
 
 		self.map_visible = Some(vec::from_elem(map.width, vec::from_elem(map.height, false)));
 		self.map_known = Some(vec::from_elem(map.width, vec::from_elem(map.height, false)));
 	}
 
-	fn each_in_front(&self, f : &fn(position : &Position)) {
-		Position{x:0,y:0}.each_around(PLAYER_VIEW, 2, PLAYER_VIEW, PLAYER_VIEW, f)
-	}
-
-	fn with_map(&self, f : &fn (map : @mut Map)) {
-		match self.map {
-			Some(map) => f(map),
-			None => {}
-		}
-	}
-
-
-	fn do_view(&mut self, pos: &Position, dir : Direction,
-		pdir : Option<Direction>, depth: uint) {
-		if (depth == 0) {
-			return;
-		}
-
-		self.mark_visible(pos);
-		self.mark_known(pos);
-
-		let neighbors = match pdir {
-			Some(pdir) => {
-				if pdir == dir {
-					~[dir]
-				} else {
-					~[dir, pdir]
-				}
-			},
-			None => {
-				~[dir, dir.left(), dir.right()]
-			}
-		};
-		
-		if_map!(|map| { {
-			if map.at(pos).can_see_through() {
-				for neighbors.each |&d| {
-					let n = pos.neighbor(d);
-					self.do_view(&n, d, Some(dir), depth - 1);
-				}
-			} }
-		});
-	}
-
-	fn update_visibility(&mut self) {
-
-		if_map!(|map| {
-			self.map_visible = Some(vec::from_elem(map.width, vec::from_elem(map.height, false)))
-		});
-
-		let position = copy self.position;
-		let direction = copy self.direction;
-
-		self.do_view(&position, direction, None, PLAYER_VIEW as uint);
-	}
 
 	fn turn_right(&mut self) {
 		 self.direction = self.direction.right();
@@ -377,7 +215,7 @@ pub impl Creature {
 		});
 	}
 
-	fn move_backwards(&mut self) {
+	fn move_backward(&mut self) {
 		if_map!(|map| {
 			let new_position = self.position.neighbor(self.direction.opposite());
 			if (map.at(&new_position).is_passable()) {
@@ -388,8 +226,8 @@ pub impl Creature {
 
 	pure fn wrap_position(&self, pos : &Position) -> Position {
 		Position {
-			x: mymod(pos.x, self.map_width as int),
-			y: mymod(pos.y, self.map_height as int)
+			x: modulo(pos.x, self.map_width as int),
+			y: modulo(pos.y, self.map_height as int)
 		}
 	}
 
@@ -403,7 +241,6 @@ pub impl Creature {
 			None => {}
 		}
 	}
-
 
 	fn mark_known(&mut self, pos : &Position) {
 		let p = self.wrap_position(pos);
@@ -441,10 +278,58 @@ pub impl Creature {
 	pure fn position(&self) -> Position {
 		self.position
 	}
+
+	/* Iterate over a rectangle in front of the Creature */
+	fn each_in_view_rect(&self, f : &fn(position : &Position)) {
+		Position{x:0,y:0}.each_around(PLAYER_VIEW, 2, PLAYER_VIEW, PLAYER_VIEW, f)
+	}
+
+	/* Recursive LoS algorithm */
+	fn do_view(&mut self, pos: &Position, dir : Direction,
+		pdir : Option<Direction>, depth: uint) {
+		if (depth == 0) {
+			return;
+		}
+
+		self.mark_visible(pos);
+		self.mark_known(pos);
+
+		let neighbors = match pdir {
+			Some(pdir) => {
+				if pdir == dir {
+					~[dir]
+				} else {
+					~[dir, pdir]
+				}
+			},
+			None => {
+				~[dir, dir.left(), dir.right()]
+			}
+		};
+
+		if_map!(|map| { {
+			if map.at(pos).can_see_through() {
+				for neighbors.each |&d| {
+					let n = pos.neighbor(d);
+					self.do_view(&n, d, Some(dir), depth - 1);
+				}
+			} }
+		});
+	}
+
+	fn update_visibility(&mut self) {
+		if_map!(|map| {
+			self.map_visible = Some(vec::from_elem(map.width, vec::from_elem(map.height, false)))
+		});
+
+		let position = copy self.position;
+		let direction = copy self.direction;
+
+		self.do_view(&position, direction, None, PLAYER_VIEW as uint);
+	}
 }
 
 pub impl Tile {
-
 	fn is_wall(&self) -> bool {
 		match *self {
 			WALL => true,
@@ -479,7 +364,8 @@ impl MapView for Map {
 		let p = self.wrap_position(pos);
 		self.map[p.x][p.y]
 	}
-	fn translate(&self, pos : &Position) -> Position {
+
+	pub fn translate(&self, pos : &Position) -> Position {
 		*pos
 	}
 }
@@ -494,7 +380,6 @@ fn each_in_vrect<T: MapView>(s: &T, cp : &Position, rx : int, ry : int, f : &fn(
 		}
 	}
 }
-
 
 pub impl Map {
 	static fn new() -> @mut Map {
@@ -516,8 +401,8 @@ pub impl Map {
 
 	pure fn wrap_position(&self, pos : &Position) -> Position {
 		Position {
-			x: mymod(pos.x, self.width as int),
-			y: mymod(pos.y, self.height as int)
+			x: modulo(pos.x, self.width as int),
+			y: modulo(pos.y, self.height as int)
 		}
 	}
 
@@ -530,9 +415,15 @@ pub impl Map {
 	}
 	
 }
+
 pub impl RelativeMap {
 	static fn new(map: @mut Map, pos : &Position, dir : Direction) -> ~RelativeMap {
 		~RelativeMap{ map: map, pos: *pos, dir: dir }
+	}
+
+	/* Underlying map. */
+	fn base(&mut self) -> @mut Map {
+		self.map
 	}
 }
 
@@ -569,4 +460,5 @@ impl MapView for RelativeMap {
 			}
 		}
 	}
+
 }

@@ -4,7 +4,6 @@ use core::cmp::Eq;
 use core::ops::{Add, Sub};
 use core::vec;
 
-use sdl;
 use sdl::video;
 use sdl::{Rect};
 
@@ -139,7 +138,7 @@ pub impl Direction {
 	}
 }
 
-pub impl Eq for Position {
+impl Eq for Position {
 
 	pure fn eq(&self, p : &Position) -> bool {
 		self.x == p.x && self.y == p.y
@@ -150,13 +149,13 @@ pub impl Eq for Position {
 	}
 }
 
-pub impl Add<Position, Position> for Position {
+impl Add<Position, Position> for Position {
 	pure fn add(&self, pos : &Position) -> Position {
 		Position {x: self.x + pos.x, y: self.y + pos.y }
 	}
 }
 
-pub impl Sub<Position, Position> for Position {
+impl Sub<Position, Position> for Position {
 	pure fn sub(&self, pos : &Position) -> Position {
 		Position {x: self.x - pos.x, y: self.y - pos.y }
 	}
@@ -288,8 +287,8 @@ macro_rules! if_map(
 
 const PLAYER_VIEW: int = 10;
 pub impl Creature {
-	static fn new(position : Position, direction : Direction) -> ~mut Creature {
-		~mut Creature {
+	static fn new(position : Position, direction : Direction) -> ~Creature {
+		~Creature {
 			position: position, direction: direction, map: None,
 			map_visible: None, map_known: None,
 			map_width: 0, map_height: 0
@@ -475,7 +474,7 @@ pub impl Tile {
 	}
 }
 
-pub impl MapView for Map {
+impl MapView for Map {
 	fn at(&self, pos: &Position) -> Tile {
 		let p = self.wrap_position(pos);
 		self.map[p.x][p.y]
@@ -532,12 +531,12 @@ pub impl Map {
 	
 }
 pub impl RelativeMap {
-	static fn new(map: @mut Map, pos : &Position, dir : Direction) -> ~mut RelativeMap {
-		~mut RelativeMap{ map: map, pos: *pos, dir: dir }
+	static fn new(map: @mut Map, pos : &Position, dir : Direction) -> ~RelativeMap {
+		~RelativeMap{ map: map, pos: *pos, dir: dir }
 	}
 }
 
-pub impl MapView for RelativeMap {
+impl MapView for RelativeMap {
 	fn at(&self, pos: &Position) -> Tile {
 		self.map.at(&self.translate(pos))
 	}

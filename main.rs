@@ -2,13 +2,9 @@ extern mod sdl;
 mod map;
 
 use map::MapView;
-use map;
 
 use core::str;
 use core::io;
-use core::path;
-use core::libc::{c_char};
-use sdl;
 use sdl::video;
 use sdl::img;
 use sdl::event;
@@ -56,7 +52,7 @@ fn sdl_main() {
 		};
 	let map = map::Map::new();
 
-	let player = map::Creature::new(map::Position {x: 0, y: 0}, map::N);
+	let mut player = map::Creature::new(map::Position {x: 0, y: 0}, map::N);
 
 	player.set_map(map);
 

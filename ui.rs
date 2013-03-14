@@ -78,6 +78,9 @@ impl Sprite {
 		}
 		spr
 	}
+	static fn for_creature(dir : map::Direction) -> Sprite {
+		Sprite{ x: dir.to_uint(), y: 3 }
+	}
 
 	static fn human() -> Sprite {
 		Sprite{ x: 1, y: 0 }
@@ -105,8 +108,8 @@ fn load_or_die(file : ~str) -> ~video::Surface {
 }
 
 pub impl View {
-	static fn new(x : int, y : int) -> ~View {
-		~View{ x_offset: x, y_offset: y }
+	static fn new(x : int, y : int) -> View {
+		View{ x_offset: x, y_offset: y }
 	}
 
 	fn draw(&self, screen: &video::Surface, pos : &map::Position, surface : &video::Surface) {
@@ -149,7 +152,7 @@ pub enum Action {
 }
 
 pub impl UI {
-	static fn new() -> ~UI {
+	static fn new() -> UI {
 		sdl::init(&[sdl::InitEverything]);
 		img::init([img::InitPNG]);
 
@@ -169,7 +172,7 @@ pub impl UI {
 
 		let tiles = load_or_die(~"tiles");
 
-		~UI {
+		UI {
 			screen: screen,
 			view: ~View {
 			  x_offset: (SCREEN_WIDTH - HEX_FULL_WIDTH) as int / 2,
@@ -190,6 +193,18 @@ pub impl UI {
 				let t = rm.base().at(tpos);
 				let sprite = Sprite::for_tile(t, player.sees(tpos));
 				self.view.draw_sprite(self.screen, self.tiles, pos, sprite);
+
+				if player.sees (tpos) {
+					match rm.base().creature_at(tpos) {
+						Some(creature) => {
+							let sprite = Sprite::for_creature(
+								creature.direction.relative_to(player.direction)
+							);
+							self.view.draw_sprite(self.screen, self.tiles, pos, sprite);
+						},
+						None => {}
+					};
+				}
 			}
 		}
 

@@ -39,12 +39,14 @@ const MAP_HEIGHT : uint = 32;
 
 pub struct Map {
 	map : ~[ ~[ Tile ] ],
+	creatures : ~[ ~[ Option<@Creature> ] ],
 	width: uint,
 	height : uint
 }
 
 pub trait MapView {
 	fn at(&self, pos: &Position) -> Tile;
+	fn creature_at(&self, pos: &Position) -> Option<@Creature>;
 	fn translate(&self, pos : &Position) -> Position;
 }
 
@@ -79,6 +81,12 @@ pub impl Direction {
 	pure fn opposite(&self) -> Direction {
 		unsafe {
 			cast::reinterpret_cast(&modulo((*self as int + 3), 6))
+		}
+	}
+
+	pure fn relative_to(&self, dir : Direction) -> Direction {
+		unsafe {
+			cast::reinterpret_cast(&modulo(((*self as int)  - (dir as int)), 6))
 		}
 	}
 
@@ -180,8 +188,8 @@ macro_rules! if_map(
 
 const PLAYER_VIEW: int = 10;
 pub impl Creature {
-	static fn new(position : Position, direction : Direction) -> ~Creature {
-		~Creature {
+	static fn new(position : Position, direction : Direction) -> Creature {
+		Creature {
 			position: position, direction: direction, map: None,
 			map_visible: None, map_known: None,
 			map_width: 0, map_height: 0
@@ -364,7 +372,10 @@ impl MapView for Map {
 		let p = self.wrap_position(pos);
 		self.map[p.x][p.y]
 	}
-
+	fn creature_at(&self, pos: &Position) -> Option<@Creature> {
+		let p = self.wrap_position(pos);
+		self.creatures[p.x][p.y]
+	}
 	pub fn translate(&self, pos : &Position) -> Position {
 		*pos
 	}
@@ -382,7 +393,7 @@ fn each_in_vrect<T: MapView>(s: &T, cp : &Position, rx : int, ry : int, f : &fn(
 }
 
 pub impl Map {
-	static fn new() -> @mut Map {
+	static fn new() -> Map {
 		let rng = rand::Rng();
 
 		let map = vec::from_fn(MAP_WIDTH, |_| {
@@ -394,8 +405,23 @@ pub impl Map {
 				}
 			})
 		});
-		@mut Map {
-			map: map, width: MAP_WIDTH, height: MAP_HEIGHT
+		let creatures = vec::from_fn(MAP_WIDTH, |x| {
+			vec::from_fn(MAP_HEIGHT, |y| {
+				if (rng.gen_int_range(0, 15) == 0) {
+					let mut c = @Creature::new(
+						Position { x: x as int, y: y as int},
+						N.turn(rng.gen_int_range(0, 5))
+						);
+					Some(c)
+				} else {
+					None
+				}
+			})
+		});
+
+		Map {
+			map: map, creatures: creatures,
+			width: MAP_WIDTH, height: MAP_HEIGHT
 		}
 	}
 
@@ -417,8 +443,8 @@ pub impl Map {
 }
 
 pub impl RelativeMap {
-	static fn new(map: @mut Map, pos : &Position, dir : Direction) -> ~RelativeMap {
-		~RelativeMap{ map: map, pos: *pos, dir: dir }
+	static fn new(map: @mut Map, pos : &Position, dir : Direction) -> RelativeMap {
+		RelativeMap{ map: map, pos: *pos, dir: dir }
 	}
 
 	/* Underlying map. */
@@ -430,6 +456,10 @@ pub impl RelativeMap {
 impl MapView for RelativeMap {
 	fn at(&self, pos: &Position) -> Tile {
 		self.map.at(&self.translate(pos))
+	}
+
+	fn creature_at(&self, pos: &Position) -> Option<@Creature> {
+		self.map.creature_at(&self.translate(pos))
 	}
 
 	fn translate(&self, pos : &Position) -> Position {

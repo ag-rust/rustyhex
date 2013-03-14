@@ -4,16 +4,15 @@ pub mod map;
 pub mod ui;
 
 fn sdl_main() {
-	let ui = ui::UI::new();
+	let ui = ~ui::UI::new();
 
-	let map = map::Map::new();
+	let map = @mut map::Map::new();
 
-	let mut player = map::Creature::new(map::Position {x: 0, y: 0}, map::N);
+	let mut player = ~map::Creature::new(map::Position {x: 0, y: 0}, map::N);
 
 	player.set_map(map);
 
 	loop {
-
 		player.update_visibility();
 
 		ui.update(player, map);

@@ -10,6 +10,13 @@ use sdl::Rect;
 use map;
 use map::MapView;
 
+/* replace with something more Rusty
+ * in the future */
+use core::libc::{c_int};
+pub extern {
+	fn usleep(n : c_int) -> c_int;
+}
+
 const SCREEN_WIDTH: uint = 800;
 const SCREEN_HEIGHT: uint = 600;
 const SCREEN_BPP: uint = 32;
@@ -36,7 +43,8 @@ struct View {
 pub struct UI {
 	screen : ~video::Surface,
 	tiles : ~video::Surface,
-	view : ~View
+	view : ~View,
+	exit : bool
 }
 
 impl map::Position {
@@ -143,14 +151,6 @@ pub impl View {
 	}
 }
 
-pub enum Action {
-	MOVE_FORWARD,
-	MOVE_BACKWARD,
-	TURN_LEFT,
-	TURN_RIGHT,
-	EXIT
-}
-
 pub impl UI {
 	static fn new() -> UI {
 		sdl::init(&[sdl::InitEverything]);
@@ -174,6 +174,7 @@ pub impl UI {
 
 		UI {
 			screen: screen,
+			exit: false,
 			view: ~View {
 			  x_offset: (SCREEN_WIDTH - HEX_FULL_WIDTH) as int / 2,
 			  y_offset: (SCREEN_HEIGHT - HEX_FULL_HEIGHT) as int * 7 / 8
@@ -182,23 +183,27 @@ pub impl UI {
 		}
 	}
 
-	fn update(&self, player : &mut map::Creature, m : @mut map::Map) {
+	fn update(&self, player : &mut map::Creature, m : &mut map::Map) {
 		self.screen.fill(video::RGB(0, 0, 0));
 
-		let mut rm = map::RelativeMap::new(m, &player.position, player.direction);
+		let mut rm = map::RelativeMap::new(m, &player.pos, player.dir);
 
 		do player.each_in_view_rect() | pos : &map::Position | {
 			let tpos = &rm.translate(pos);
-			if player.knows(tpos) {
-				let t = rm.base().at(tpos);
-				let sprite = Sprite::for_tile(t, player.sees(tpos));
+			let mut base = rm.base();
+			if player.knows(base, tpos) {
+				let t = base.at(tpos);
+				//let t = do rm.for_base() |map| { map.at(tpos) };
+				let sprite = Sprite::for_tile(t, player.sees(base, tpos));
 				self.view.draw_sprite(self.screen, self.tiles, pos, sprite);
 
-				if player.sees (tpos) {
-					match rm.base().creature_at(tpos) {
+				if player.sees(base, tpos) {
+					match base.creature_at(tpos) {
+					//let c = do rm.for_base() |map| { map.creature_at(tpos) };
+					//match c {
 						Some(creature) => {
 							let sprite = Sprite::for_creature(
-								creature.direction.relative_to(player.direction)
+								creature.dir.relative_to(player.dir)
 							);
 							self.view.draw_sprite(self.screen, self.tiles, pos, sprite);
 						},
@@ -211,27 +216,35 @@ pub impl UI {
 		self.view.draw_sprite(self.screen, self.tiles, &map::Position {x:0, y:0}, Sprite::human());
 
 		self.screen.flip();
+
+		unsafe {
+			usleep(50000);
+		}
 	}
 
-	fn get_input(&self) -> Action {
+	fn get_input(&mut self) -> map::Action {
 		loop {
 			match event::wait_event() {
 				event::KeyEvent(key, true , _, _) => {
 					match key {
 						event::EscapeKey => {
-							return EXIT;
+							self.exit = true;
+							return map::WAIT;
 						},
 						event::KKey | event::UpKey => {
-							return MOVE_FORWARD;
+							return map::MOVE_FORWARD;
 						},
 						event::HKey | event::LeftKey => {
-							return TURN_LEFT;
+							return map::TURN_LEFT;
 						},
 						event::LKey | event::RightKey => {
-							return TURN_RIGHT;
+							return map::TURN_RIGHT;
 						},
 						event::JKey | event::DownKey => {
-							return MOVE_BACKWARD;
+							return map::MOVE_BACKWARD;
+						},
+						event::CommaKey | event::SpaceKey => {
+							return map::WAIT;
 						},
 						k => {
 							io::print(fmt!("%d\n", k as int));

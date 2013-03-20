@@ -19,14 +19,28 @@ pub struct Position {
 	y : int
 }
 
+pub enum Action {
+	MOVE_FORWARD,
+	MOVE_BACKWARD,
+	TURN_LEFT,
+	TURN_RIGHT,
+	WAIT
+}
+
+pub trait MoveController {
+	fn get_move(&mut self, &mut Map, cr: @mut Creature) -> Action;
+}
+
 pub struct Creature {
-	position :Position,
-	direction : Direction,
-	map: Option<@mut Map>,
-	map_width: uint,
+	pos : Position,
+	dir : Direction,
+	action : Option<Action>,
+	pre_action_ticks : uint,
+	post_action_ticks : uint,
+	map_visible : ~[ ~[ bool ] ],
+	map_known : ~[ ~[ bool ] ],
 	map_height: uint,
-	map_visible : Option<~[ ~[ bool ] ]>,
-	map_known : Option<~[ ~[ bool ] ]>
+	map_width: uint
 }
 
 pub enum Tile {
@@ -38,25 +52,46 @@ const MAP_WIDTH : uint = 32;
 const MAP_HEIGHT : uint = 32;
 
 pub struct Map {
-	map : ~[ ~[ Tile ] ],
-	creatures : ~[ ~[ Option<@Creature> ] ],
+	tiles : ~[ ~[ Tile ] ],
+	creatures : ~[ ~[ Option<@mut Creature> ] ],
 	width: uint,
 	height : uint
 }
 
 pub trait MapView {
-	fn at(&self, pos: &Position) -> Tile;
-	fn creature_at(&self, pos: &Position) -> Option<@Creature>;
-	fn translate(&self, pos : &Position) -> Position;
+	pure fn at(&self, pos: &Position) -> Tile;
+	pure fn creature_at(&self, pos: &Position) -> Option<@mut Creature>;
+	pure fn translate(&self, pos : &Position) -> Position;
 }
 
 /**
  * View of the map with rotation (dir) and offset (pos)
  */
 pub struct RelativeMap {
-	map : @mut Map,
+	map : &'self mut Map,
 	pos : Position,
 	dir : Direction
+}
+
+pub impl Action {
+	pure fn pre_ticks(&self) -> uint {
+		match *self {
+			MOVE_FORWARD => 10u,
+			MOVE_BACKWARD => 15u,
+			TURN_RIGHT => 7u,
+			TURN_LEFT => 7u,
+			WAIT => 1u
+		}
+	}
+	pure fn post_ticks(&self) -> uint {
+		match *self {
+			MOVE_FORWARD => 10u,
+			MOVE_BACKWARD => 10u,
+			TURN_RIGHT => 7u,
+			TURN_LEFT => 7u,
+			WAIT => 0u
+		}
+	}
 }
 
 pub impl Direction {
@@ -98,7 +133,6 @@ pub impl Direction {
 }
 
 impl Eq for Position {
-
 	pure fn eq(&self, p : &Position) -> bool {
 		self.x == p.x && self.y == p.y
 	}
@@ -121,7 +155,6 @@ impl Sub<Position, Position> for Position {
 }
 
 pub impl Position {
-
 	pure fn relative_to(&self, pos : &Position) -> ~Position {
 		~Position{ x: self.x - pos.x, y: self.y - pos.y}
 	}
@@ -174,6 +207,7 @@ pure fn modulo(x :int, m : int) -> int {
  * Creature helper to deal with
  * optional map.
  */
+/*
 macro_rules! if_map(
 		(|$v:ident| $inexp:expr ) => (
 		{
@@ -185,106 +219,111 @@ macro_rules! if_map(
 		}
 		)
 	)
+*/
 
 const PLAYER_VIEW: int = 10;
 pub impl Creature {
-	static fn new(position : Position, direction : Direction) -> Creature {
+	static fn new(map : &mut Map, position : &Position, direction : Direction) -> Creature {
 		Creature {
-			position: position, direction: direction, map: None,
-			map_visible: None, map_known: None,
-			map_width: 0, map_height: 0
+			pos : *position, dir : direction,
+			action: None, pre_action_ticks: 0, post_action_ticks: 0,
+			map_visible: vec::from_elem(map.width, vec::from_elem(map.height, false)),
+			map_known: vec::from_elem(map.width, vec::from_elem(map.height, false)),
+			map_width: map.width,
+			map_height: map.height,
 		}
 	}
 
-	fn set_map(&mut self, map : @mut Map) {
-		self.map = Some(map);
-		self.map_width = map.width;
-		self.map_height = map.height;
-
-		self.map_visible = Some(vec::from_elem(map.width, vec::from_elem(map.height, false)));
-		self.map_known = Some(vec::from_elem(map.width, vec::from_elem(map.height, false)));
-	}
-
-
-	fn turn_right(&mut self) {
-		 self.direction = self.direction.right();
-	}
-
-	fn turn_left(&mut self) -> () {
-		self.direction = self.direction.left();
-	}
-
-	fn move_forward(&mut self) {
-		if_map!(|map| {
-			let new_position = self.position.neighbor(self.direction);
-			if (map.at(&new_position).is_passable()) {
-				self.position = new_position;
+	fn tick<T: MoveController>(@mut self, map : &mut Map, cr : &mut T) -> bool {
+		let mut redraw = false;
+		if (self.pre_action_ticks > 0) {
+			self.pre_action_ticks -= 1;
+		} else {
+			match (self.action) {
+				Some(action) => {
+					redraw = true;
+					match (action) {
+						MOVE_FORWARD => self.move_forward(map),
+						MOVE_BACKWARD => self.move_backward(map),
+						TURN_RIGHT => self.turn_right(),
+						TURN_LEFT => self.turn_left(),
+						WAIT => {}
+					}
+					self.action = None
+				}
+				None => {
+					if (self.post_action_ticks > 0) {
+						self.post_action_ticks -= 1;
+					} else {
+						let action = cr.get_move(map, self);
+						self.action = Some(action);
+						self.pre_action_ticks = action.pre_ticks();
+						self.post_action_ticks = action.post_ticks();
+					}
+				}
 			}
-		});
+		}
+		redraw
 	}
 
-	fn move_backward(&mut self) {
-		if_map!(|map| {
-			let new_position = self.position.neighbor(self.direction.opposite());
-			if (map.at(&new_position).is_passable()) {
-				self.position = new_position;
-			}
-		})
+	fn turn_right(@mut self) {
+		 self.dir = self.dir.right();
 	}
 
+	fn turn_left(@mut self) -> () {
+		self.dir = self.dir.left();
+	}
+
+	fn move_forward(@mut self, map : &mut Map) {
+		let new_position = self.pos.neighbor(self.dir);
+		if (map.at(&new_position).is_passable()) {
+			map.move_creature(self, &new_position);
+		}
+	}
+
+	fn move_backward(@mut self, map : &mut Map) {
+		let new_position = self.pos.neighbor(self.dir.opposite());
+		self.mark_known(map, &new_position);
+		if (map.at(&new_position).is_passable()) {
+			map.move_creature(self, &new_position);
+		}
+	}
+
+	/*
 	pure fn wrap_position(&self, pos : &Position) -> Position {
 		Position {
 			x: modulo(pos.x, self.map_width as int),
 			y: modulo(pos.y, self.map_height as int)
 		}
 	}
+	*/
 
-	fn mark_visible(&mut self, pos : &Position) {
-		let p = self.wrap_position(pos);
+	fn mark_visible(&mut self, map : &Map, pos : &Position) {
+		let p = map.wrap_position(pos);
 
-		match self.map_visible {
-			Some(ref mut visible) => {
-				visible[p.x][p.y] = true
-			},
-			None => {}
-		}
+		self.map_visible[p.x][p.y] = true;
 	}
 
-	fn mark_known(&mut self, pos : &Position) {
-		let p = self.wrap_position(pos);
+	fn mark_known(&mut self, map : &Map,  pos : &Position) {
+		let p = map.wrap_position(pos);
 
-		match self.map_known {
-			Some(ref mut known) => {
-				known[p.x][p.y] = true
-			},
-			None => {}
-		}
+		self.map_known[p.x][p.y] = true;
 	}
 
-	pure fn sees(&self, pos: &Position) -> bool {
-		let p = self.wrap_position(pos);
+	pure fn sees(&self, map : &Map, pos: &Position) -> bool {
+		let p = map.wrap_position(pos);
 
-		match self.map_visible {
-			Some(ref visible) => {
-				visible[p.x][p.y]
-			},
-			None => false
-		}
+		self.map_visible[p.x][p.y]
 	}
 
-	pure fn knows(&self, pos: &Position) -> bool {
-		let p = self.wrap_position(pos);
+	pure fn knows(&self, map : &Map, pos: &Position) -> bool {
+		let p = map.wrap_position(pos);
 
-		match self.map_known {
-			Some(ref knows) => {
-				knows[p.x][p.y]
-			},
-			None => false
-		}
+		self.map_known[p.x][p.y]
 	}
 
 	pure fn position(&self) -> Position {
-		self.position
+		self.pos
 	}
 
 	/* Iterate over a rectangle in front of the Creature */
@@ -293,14 +332,14 @@ pub impl Creature {
 	}
 
 	/* Recursive LoS algorithm */
-	fn do_view(&mut self, pos: &Position, dir : Direction,
+	fn do_view(&mut self, map : &mut Map, pos: &Position, dir : Direction,
 		pdir : Option<Direction>, depth: uint) {
 		if (depth == 0) {
 			return;
 		}
 
-		self.mark_visible(pos);
-		self.mark_known(pos);
+		self.mark_visible(map, pos);
+		self.mark_known(map, pos);
 
 		let neighbors = match pdir {
 			Some(pdir) => {
@@ -315,25 +354,21 @@ pub impl Creature {
 			}
 		};
 
-		if_map!(|map| { {
-			if map.at(pos).can_see_through() {
-				for neighbors.each |&d| {
-					let n = pos.neighbor(d);
-					self.do_view(&n, d, Some(dir), depth - 1);
-				}
-			} }
-		});
+		if map.at(pos).can_see_through() {
+			for neighbors.each |&d| {
+				let n = pos.neighbor(d);
+				self.do_view(map, &n, d, Some(dir), depth - 1);
+			}
+		}
 	}
 
-	fn update_visibility(&mut self) {
-		if_map!(|map| {
-			self.map_visible = Some(vec::from_elem(map.width, vec::from_elem(map.height, false)))
-		});
+	fn update_visibility(&mut self, map : &mut Map) {
+		self.map_visible = vec::from_elem(map.width, vec::from_elem(map.height, false));
 
-		let position = copy self.position;
-		let direction = copy self.direction;
+		let position = copy self.pos;
+		let direction = copy self.dir;
 
-		self.do_view(&position, direction, None, PLAYER_VIEW as uint);
+		self.do_view(map, &position, direction, None, PLAYER_VIEW as uint);
 	}
 }
 
@@ -368,15 +403,15 @@ pub impl Tile {
 }
 
 impl MapView for Map {
-	fn at(&self, pos: &Position) -> Tile {
+	pure fn at(&self, pos: &Position) -> Tile {
 		let p = self.wrap_position(pos);
-		self.map[p.x][p.y]
+		self.tiles[p.x][p.y]
 	}
-	fn creature_at(&self, pos: &Position) -> Option<@Creature> {
+	pure fn creature_at(&self, pos: &Position) -> Option<@mut Creature> {
 		let p = self.wrap_position(pos);
 		self.creatures[p.x][p.y]
 	}
-	pub fn translate(&self, pos : &Position) -> Position {
+	pure fn translate(&self, pos : &Position) -> Position {
 		*pos
 	}
 }
@@ -405,22 +440,15 @@ pub impl Map {
 				}
 			})
 		});
-		let creatures = vec::from_fn(MAP_WIDTH, |x| {
-			vec::from_fn(MAP_HEIGHT, |y| {
-				if (rng.gen_int_range(0, 15) == 0) {
-					let mut c = @Creature::new(
-						Position { x: x as int, y: y as int},
-						N.turn(rng.gen_int_range(0, 5))
-						);
-					Some(c)
-				} else {
-					None
-				}
+
+		let creatures = vec::from_fn(MAP_WIDTH, |_| {
+			vec::from_fn(MAP_HEIGHT, |_| {
+				None
 			})
 		});
 
 		Map {
-			map: map, creatures: creatures,
+			tiles: map, creatures: creatures,
 			width: MAP_WIDTH, height: MAP_HEIGHT
 		}
 	}
@@ -432,37 +460,85 @@ pub impl Map {
 		}
 	}
 
-	fn each(&mut self, f : &fn(position : Position, &mut Tile)) {
+	fn for_each_tile(&mut self, f : &fn(Position, &mut Tile)) {
 		for range(0, self.width as int) |x| {
 			for range(0, self.height as int) |y| {
-				f(Position {x: x as int, y: y as int}, &mut self.map[x][y]);
+				f(Position {x: x as int, y: y as int}, &mut self.tiles[x][y]);
 			}
 		}
 	}
-	
+
+	fn for_each_creature(&mut self, f : &fn(@mut Creature)) {
+		for range(0, self.width as int) |x| {
+			for range(0, self.height as int) |y| {
+				match (self.creatures[x][y]) {
+					Some(creature) => f(creature),
+					None => {}
+				}
+			}
+		}
+	}
+
+	fn spawn_creature(&mut self, pos : &Position, dir : Direction) -> Option<@mut Creature> {
+		match (self.creatures[pos.x][pos.y]) {
+			Some(_) => None,
+			None => {
+				let mut c = @mut Creature::new(self, pos, dir);
+				self.creatures[pos.x][pos.y] = Some(c);
+				Some(c)
+			}
+		}
+	}
+
+	fn spawn_random_creature(&mut self) -> @mut Creature {
+		let rng = rand::Rng();
+		let pos = &Position{
+			x: rng.gen_int_range(0, self.width as int),
+			y: rng.gen_int_range(0, self.height as int)
+		};
+
+		let dir = N.turn(rng.gen_int_range(0, 6));
+
+		match (self.spawn_creature(pos, dir)) {
+			None => self.spawn_random_creature(),
+			Some(creature) => creature
+		}
+	}
+
+	fn move_creature(&mut self, cr : @mut Creature, pos : &Position) {
+		let pos = &self.wrap_position(pos);
+		match (self.creatures[pos.x][pos.y]) {
+			Some(_) => {},
+			None => {
+				self.creatures[cr.pos.x][cr.pos.y] = None;
+				cr.pos = *pos;
+				self.creatures[pos.x][pos.y] = Some(cr);
+			}
+		}
+	}
 }
 
-pub impl RelativeMap {
-	static fn new(map: @mut Map, pos : &Position, dir : Direction) -> RelativeMap {
+pub impl<'self> RelativeMap<'self> {
+	static fn new(map: &'r mut Map, pos : &Position, dir : Direction) -> RelativeMap/&r {
 		RelativeMap{ map: map, pos: *pos, dir: dir }
 	}
 
 	/* Underlying map. */
-	fn base(&mut self) -> @mut Map {
-		self.map
+	fn base(&self) -> &self/mut Map {
+		&mut *self.map
 	}
 }
 
-impl MapView for RelativeMap {
-	fn at(&self, pos: &Position) -> Tile {
+impl MapView for RelativeMap<'self> {
+	pure fn at(&self, pos: &Position) -> Tile {
 		self.map.at(&self.translate(pos))
 	}
 
-	fn creature_at(&self, pos: &Position) -> Option<@Creature> {
+	pure fn creature_at(&self, pos: &Position) -> Option<@mut Creature> {
 		self.map.creature_at(&self.translate(pos))
 	}
 
-	fn translate(&self, pos : &Position) -> Position {
+	pure fn translate(&self, pos : &Position) -> Position {
 		match self.dir {
 			N => Position {
 				x: self.pos.x + pos.x,

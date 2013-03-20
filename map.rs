@@ -331,9 +331,9 @@ pub impl Creature {
 		Position{x:0,y:0}.each_around(PLAYER_VIEW, 2, PLAYER_VIEW, PLAYER_VIEW, f)
 	}
 
-	/* Recursive LoS algorithm */
-	fn do_view(&mut self, map : &mut Map, pos: &Position, dir : Direction,
-		pdir : Option<Direction>, depth: uint) {
+	/* Very hacky, recursive LoS algorithm */
+	fn do_view(&mut self, map : &mut Map, pos: &Position,
+		main_dir : Direction, dir : Option<Direction>, pdir : Option<Direction>, depth: uint) {
 		if (depth == 0) {
 			return;
 		}
@@ -341,23 +341,37 @@ pub impl Creature {
 		self.mark_visible(map, pos);
 		self.mark_known(map, pos);
 
-		let neighbors = match pdir {
-			Some(pdir) => {
-				if pdir == dir {
+		let neighbors = match (dir, pdir) {
+			(Some(dir), Some(pdir)) => {
+				if dir == pdir {
 					~[dir]
 				} else {
 					~[dir, pdir]
 				}
 			},
-			None => {
-				~[dir, dir.left(), dir.right()]
+			(Some(dir), None) => {
+				if main_dir == dir {
+					~[dir, dir.left(), dir.right()]
+				} else {
+					~[dir, main_dir]
+				}
+			},
+			_ => {
+				~[main_dir, main_dir.left(), main_dir.right()]
 			}
 		};
 
 		if map.at(pos).can_see_through() {
 			for neighbors.each |&d| {
 				let n = pos.neighbor(d);
-				self.do_view(map, &n, d, Some(dir), depth - 1);
+				match dir {
+					Some(_) => {
+						self.do_view(map, &n, d, Some(d), dir, depth - 1);
+					},
+					None => {
+						self.do_view(map, &n, main_dir, Some(d), dir, depth - 1);
+					}
+				};
 			}
 		}
 	}
@@ -368,7 +382,7 @@ pub impl Creature {
 		let position = copy self.pos;
 		let direction = copy self.dir;
 
-		self.do_view(map, &position, direction, None, PLAYER_VIEW as uint);
+		self.do_view(map, &position, direction, None, None, PLAYER_VIEW as uint);
 	}
 }
 

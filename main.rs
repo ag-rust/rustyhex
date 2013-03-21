@@ -48,7 +48,6 @@ impl map::MoveController for PlayerController<'self> {
 }
 
 fn sdl_main() {
-	let mut ui = ~ui::UI::new();
 
 	let map = @mut map::Map::new();
 	let mut monster_ai = ~MonsterController::new();
@@ -59,16 +58,18 @@ fn sdl_main() {
 			map.spawn_random_creature()
 		}
 	);
-
 	creatures.push(player);
+
 	player.update_visibility();
-	ui.update(player);
+	let mut ui = ~ui::UI::new(player);
+	ui.update();
 
 	loop {
+		let mut redraw = false;
 		for creatures.each |creature| {
 			let old_pos = creature.pos;
 
-			let redraw = if creature.pos == player.pos {
+			let causes_redraw = if creature.pos == player.pos {
 				let mut player_ai = ~PlayerController::new(ui);
 				let redraw = creature.tick(player_ai);
 
@@ -90,10 +91,13 @@ fn sdl_main() {
 			if (ui.exit) {
 				return;
 			}
-
-			if redraw {
-				ui.update(player);
+			if causes_redraw {
+				redraw = true;
 			}
+		}
+
+		if redraw {
+			ui.update();
 		}
 	}
 }

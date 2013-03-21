@@ -41,6 +41,7 @@ struct View {
 
 pub struct UI {
 	screen : ~video::Surface,
+	player : @mut map::Creature,
 	tiles : ~video::Surface,
 	view : ~View,
 	exit : bool
@@ -151,7 +152,7 @@ pub impl View {
 }
 
 pub impl UI {
-	static fn new() -> UI {
+	static fn new(player : @mut map::Creature) -> UI {
 		sdl::init(&[sdl::InitEverything]);
 		img::init([img::InitPNG]);
 
@@ -173,6 +174,7 @@ pub impl UI {
 
 		UI {
 			screen: screen,
+			player: player,
 			exit: false,
 			view: ~View {
 			  x_offset: (SCREEN_WIDTH - HEX_FULL_WIDTH) as int / 2,
@@ -182,24 +184,25 @@ pub impl UI {
 		}
 	}
 
-	fn update(&self, player : &mut map::Creature) {
+	fn update(&mut self) {
 		self.screen.fill(video::RGB(0, 0, 0));
 
-		let mut rm = map::RelativeMap::new(player.map, &player.pos, player.dir);
+		let p = &*self.player; //workaround borrowing bug
+		let mut rm = map::RelativeMap::new(self.player.map, &p.pos, self.player.dir);
 
-		do player.each_in_view_rect() | pos : &map::Position | {
+		do self.player.each_in_view_rect() | pos : &map::Position | {
 			let tpos = &rm.translate(pos);
 			let mut base = rm.base();
-			if player.knows(tpos) {
+			if self.player.knows(tpos) {
 				let t = base.at(tpos);
-				let sprite = Sprite::for_tile(t, player.sees(tpos));
+				let sprite = Sprite::for_tile(t, self.player.sees(tpos));
 				self.view.draw_sprite(self.screen, self.tiles, pos, sprite);
 
-				if player.sees(tpos) {
+				if self.player.sees(tpos) {
 					match base.creature_at(tpos) {
 						Some(creature) => {
 							let sprite = Sprite::for_creature(
-								creature.dir.relative_to(player.dir)
+								creature.dir.relative_to(self.player.dir)
 							);
 							self.view.draw_sprite(self.screen, self.tiles, pos, sprite);
 						},

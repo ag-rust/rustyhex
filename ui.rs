@@ -182,20 +182,20 @@ pub impl UI {
 		}
 	}
 
-	fn update(&self, player : &mut map::Creature, m : &mut map::Map) {
+	fn update(&self, player : &mut map::Creature) {
 		self.screen.fill(video::RGB(0, 0, 0));
 
-		let mut rm = map::RelativeMap::new(m, &player.pos, player.dir);
+		let mut rm = map::RelativeMap::new(player.map, &player.pos, player.dir);
 
 		do player.each_in_view_rect() | pos : &map::Position | {
 			let tpos = &rm.translate(pos);
 			let mut base = rm.base();
-			if player.knows(base, tpos) {
+			if player.knows(tpos) {
 				let t = base.at(tpos);
-				let sprite = Sprite::for_tile(t, player.sees(base, tpos));
+				let sprite = Sprite::for_tile(t, player.sees(tpos));
 				self.view.draw_sprite(self.screen, self.tiles, pos, sprite);
 
-				if player.sees(base, tpos) {
+				if player.sees(tpos) {
 					match base.creature_at(tpos) {
 						Some(creature) => {
 							let sprite = Sprite::for_creature(

@@ -34,10 +34,11 @@ pub enum Action {
 }
 
 pub trait MoveController {
-	fn get_move(&mut self, &mut Map, cr: @mut Creature) -> Action;
+	fn get_move(&mut self, cr: @mut Creature) -> Action;
 }
 
 pub struct Creature {
+	map : @mut Map,
 	pos : Position,
 	dir : Direction,
 	action : Option<Action>,
@@ -210,8 +211,9 @@ pure fn modulo(x :int, m : int) -> int {
 
 const PLAYER_VIEW: int = 10;
 pub impl Creature {
-	static fn new(map : &mut Map, position : &Position, direction : Direction) -> Creature {
+	static fn new(map : @mut Map, position : &Position, direction : Direction) -> Creature {
 		Creature {
+			map: map,
 			pos : *position, dir : direction,
 			action: None, pre_action_ticks: 0, post_action_ticks: 0,
 			map_visible: vec::from_elem(map.width, vec::from_elem(map.height, false)),
@@ -221,7 +223,7 @@ pub impl Creature {
 		}
 	}
 
-	fn tick<T: MoveController>(@mut self, map : &mut Map, cr : &mut T) -> bool {
+	fn tick<T: MoveController>(@mut self, cr : &mut T) -> bool {
 		let mut redraw = false;
 		if (self.pre_action_ticks > 0) {
 			self.pre_action_ticks -= 1;
@@ -230,9 +232,9 @@ pub impl Creature {
 				Some(action) => {
 					redraw = true;
 					match (action) {
-						MOVE(d) => self.move(map, d),
+						MOVE(d) => self.move(d),
 						TURN(d) => self.turn(d),
-						MELEE(d) => self.melee(map, d),
+						MELEE(d) => self.melee(d),
 						WAIT => {}
 					}
 					self.action = None
@@ -241,7 +243,7 @@ pub impl Creature {
 					if (self.post_action_ticks > 0) {
 						self.post_action_ticks -= 1;
 					} else {
-						let action = cr.get_move(map, self);
+						let action = cr.get_move(self);
 						self.action = Some(action);
 						self.pre_action_ticks = action.pre_ticks();
 						self.post_action_ticks = action.post_ticks();
@@ -256,17 +258,17 @@ pub impl Creature {
 		 self.dir = self.dir.turn(rd);
 	}
 
-	fn move(@mut self, map : &mut Map,  rd : RelativeDir) {
+	fn move(@mut self, rd : RelativeDir) {
 		let new_position = self.pos.neighbor(self.dir.turn(rd));
-		self.mark_known(map, &new_position);
-		if (map.at(&new_position).is_passable()) {
-			map.move_creature(self, &new_position);
+		self.mark_known(&new_position);
+		if (self.map.at(&new_position).is_passable()) {
+			self.map.move_creature(self, &new_position);
 		}
 	}
 
-	fn melee(@mut self, map : &mut Map, rd : RelativeDir) {
+	fn melee(@mut self, rd : RelativeDir) {
 		let new_position = self.pos.neighbor(self.dir.turn(rd));
-		match map.creature_at(&new_position) {
+		match self.map.creature_at(&new_position) {
 			Some(cr) => {
 				cr.hit();
 			},
@@ -277,26 +279,26 @@ pub impl Creature {
 	fn hit(@mut self) {
 	}
 
-	fn mark_visible(&mut self, map : &Map, pos : &Position) {
-		let p = map.wrap_position(pos);
+	fn mark_visible(&mut self, pos : &Position) {
+		let p = self.map.wrap_position(pos);
 
 		self.map_visible[p.x][p.y] = true;
 	}
 
-	fn mark_known(&mut self, map : &Map,  pos : &Position) {
-		let p = map.wrap_position(pos);
+	fn mark_known(&mut self, pos : &Position) {
+		let p = self.map.wrap_position(pos);
 
 		self.map_known[p.x][p.y] = true;
 	}
 
-	pure fn sees(&self, map : &Map, pos: &Position) -> bool {
-		let p = map.wrap_position(pos);
+	pure fn sees(&self, pos: &Position) -> bool {
+		let p = self.map.wrap_position(pos);
 
 		self.map_visible[p.x][p.y]
 	}
 
-	pure fn knows(&self, map : &Map, pos: &Position) -> bool {
-		let p = map.wrap_position(pos);
+	pure fn knows(&self, pos: &Position) -> bool {
+		let p = self.map.wrap_position(pos);
 
 		self.map_known[p.x][p.y]
 	}
@@ -311,14 +313,14 @@ pub impl Creature {
 	}
 
 	/* Very hacky, recursive LoS algorithm */
-	fn do_view(&mut self, map : &mut Map, pos: &Position,
+	fn do_view(&mut self, pos: &Position,
 		main_dir : Direction, dir : Option<Direction>, pdir : Option<Direction>, depth: uint) {
 		if (depth == 0) {
 			return;
 		}
 
-		self.mark_visible(map, pos);
-		self.mark_known(map, pos);
+		self.mark_visible(pos);
+		self.mark_known(pos);
 
 		let neighbors = match (dir, pdir) {
 			(Some(dir), Some(pdir)) => {
@@ -340,28 +342,28 @@ pub impl Creature {
 			}
 		};
 
-		if map.at(pos).can_see_through() {
+		if self.map.at(pos).can_see_through() {
 			for neighbors.each |&d| {
 				let n = pos.neighbor(d);
 				match dir {
 					Some(_) => {
-						self.do_view(map, &n, d, Some(d), dir, depth - 1);
+						self.do_view(&n, d, Some(d), dir, depth - 1);
 					},
 					None => {
-						self.do_view(map, &n, main_dir, Some(d), dir, depth - 1);
+						self.do_view(&n, main_dir, Some(d), dir, depth - 1);
 					}
 				};
 			}
 		}
 	}
 
-	fn update_visibility(&mut self, map : &mut Map) {
-		self.map_visible = vec::from_elem(map.width, vec::from_elem(map.height, false));
+	fn update_visibility(&mut self) {
+		self.map_visible = vec::from_elem(self.map.width, vec::from_elem(self.map.height, false));
 
 		let position = copy self.pos;
 		let direction = copy self.dir;
 
-		self.do_view(map, &position, direction, None, None, PLAYER_VIEW as uint);
+		self.do_view(&position, direction, None, None, PLAYER_VIEW as uint);
 	}
 }
 
@@ -472,7 +474,7 @@ pub impl Map {
 		}
 	}
 
-	fn spawn_creature(&mut self, pos : &Position, dir : Direction) -> Option<@mut Creature> {
+	fn spawn_creature(@mut self, pos : &Position, dir : Direction) -> Option<@mut Creature> {
 		match (self.creatures[pos.x][pos.y]) {
 			Some(_) => None,
 			None => {
@@ -483,7 +485,7 @@ pub impl Map {
 		}
 	}
 
-	fn spawn_random_creature(&mut self) -> @mut Creature {
+	fn spawn_random_creature(@mut self) -> @mut Creature {
 		let rng = rand::Rng();
 		let pos = &Position{
 			x: rng.gen_int_range(0, self.width as int),

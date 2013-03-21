@@ -18,13 +18,13 @@ impl MonsterController {
 }
 
 impl map::MoveController for MonsterController {
-	fn get_move(&mut self, map : &mut map::Map, cr : @mut map::Creature) -> map::Action {
+	fn get_move(&mut self, cr : @mut map::Creature) -> map::Action {
 		let rng = rand::Rng();
 		match rng.gen_int_range(0, 10) {
 			0 => map::TURN(map::LEFT),
 			1 => map::TURN(map::RIGHT),
 			_ => {
-				let in_front = map.at(&cr.pos.neighbor(cr.dir));
+				let in_front = cr.map.at(&cr.pos.neighbor(cr.dir));
 				if in_front.is_passable() {
 					map::MOVE(map::FORWARD)
 				} else {
@@ -42,7 +42,7 @@ impl<'self> PlayerController<'self> {
 }
 
 impl map::MoveController for PlayerController<'self> {
-	fn get_move(&mut self, _ : &mut map::Map, _ : @mut map::Creature) -> map::Action {
+	fn get_move(&mut self, _ : @mut map::Creature) -> map::Action {
 		self.ui.get_input()
 	}
 }
@@ -50,23 +50,19 @@ impl map::MoveController for PlayerController<'self> {
 fn sdl_main() {
 	let mut ui = ~ui::UI::new();
 
-	let mut map = ~map::Map::new();
+	let map = @mut map::Map::new();
 	let mut monster_ai = ~MonsterController::new();
 
-	let mut player = map.spawn_creature(&map::Position{x: 0, y: 0}, map::N);
+	let mut player = map.spawn_random_creature();
 
-	let mut player = match player {
-		Some(p) => p,
-		None => fail!(~"Couldn't spawn player!")
-	};
 	let mut creatures = vec::from_fn(30, |_| {
 			map.spawn_random_creature()
 		}
 	);
 
 	creatures.push(player);
-	player.update_visibility(map);
-	ui.update(player, map);
+	player.update_visibility();
+	ui.update(player);
 
 	loop {
 		for creatures.each |creature| {
@@ -74,17 +70,17 @@ fn sdl_main() {
 
 			let redraw = if creature.pos == player.pos {
 				let mut player_ai = ~PlayerController::new(ui);
-				let redraw = creature.tick(map, player_ai);
+				let redraw = creature.tick(player_ai);
 
 				if (redraw) {
-					player.update_visibility(map);
+					player.update_visibility();
 				}
 				redraw
 			} else {
-				let mut redraw = creature.tick(map, monster_ai);
+				let mut redraw = creature.tick(monster_ai);
 
 				if (redraw) {
-					if !player.sees(map, &old_pos) && !player.sees(map, &creature.pos) {
+					if !player.sees(&old_pos) && !player.sees(&creature.pos) {
 						redraw = false;
 					}
 				}
@@ -96,7 +92,7 @@ fn sdl_main() {
 			}
 
 			if redraw {
-				ui.update(player, map);
+				ui.update(player);
 			}
 		}
 	}

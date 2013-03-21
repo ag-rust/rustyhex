@@ -475,6 +475,9 @@ pub impl Map {
 	}
 
 	fn spawn_creature(@mut self, pos : &Position, dir : Direction) -> Option<@mut Creature> {
+		if (!self.at(pos).is_passable()) {
+			return None;
+		}
 		match (self.creatures[pos.x][pos.y]) {
 			Some(_) => None,
 			None => {

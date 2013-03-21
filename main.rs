@@ -65,6 +65,8 @@ fn sdl_main() {
 	);
 
 	creatures.push(player);
+	player.update_visibility(map);
+	ui.update(player, map);
 
 	loop {
 		for creatures.each |creature| {

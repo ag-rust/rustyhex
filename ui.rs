@@ -222,29 +222,50 @@ pub impl UI {
 	fn get_input(&mut self) -> map::Action {
 		loop {
 			match event::wait_event() {
-				event::KeyEvent(key, true , _, _) => {
-					match key {
-						event::EscapeKey => {
-							self.exit = true;
-							return map::WAIT;
-						},
-						event::KKey | event::UpKey => {
-							return map::MOVE_FORWARD;
-						},
-						event::HKey | event::LeftKey => {
-							return map::TURN_LEFT;
-						},
-						event::LKey | event::RightKey => {
-							return map::TURN_RIGHT;
-						},
-						event::JKey | event::DownKey => {
-							return map::MOVE_BACKWARD;
-						},
-						event::CommaKey | event::SpaceKey => {
-							return map::WAIT;
-						},
-						k => {
-							io::print(fmt!("%d\n", k as int));
+				event::KeyEvent(key, true , m, _) => {
+					let ctrl = m.contains(&event::LCtrlMod);
+
+					if ctrl {
+						match key {
+							event::HKey | event::LeftKey => {
+								return map::MELEE_LEFT;
+							},
+							event::LKey | event::RightKey => {
+								return map::MELEE_RIGHT;
+							},
+							event::KKey | event::UpKey => {
+								return map::MELEE_FORWARD;
+							},
+							_ => {}
+						}
+					} else {
+						match key {
+							event::EscapeKey => {
+								self.exit = true;
+								return map::WAIT;
+							},
+							event::KKey | event::UpKey => {
+								if (m.contains(&event::RCtrlMod)) {
+									return map::MELEE_FORWARD;
+								} else {
+									return map::MOVE_FORWARD;
+								}
+							},
+							event::HKey | event::LeftKey => {
+								return map::TURN_LEFT;
+							},
+							event::LKey | event::RightKey => {
+								return map::TURN_RIGHT;
+							},
+							event::JKey | event::DownKey => {
+								return map::MOVE_BACKWARD;
+							},
+							event::CommaKey | event::SpaceKey => {
+								return map::WAIT;
+							},
+							k => {
+								io::print(fmt!("%d\n", k as int));
+							}
 						}
 					}
 				},

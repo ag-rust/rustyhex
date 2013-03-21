@@ -24,6 +24,9 @@ pub enum Action {
 	MOVE_BACKWARD,
 	TURN_LEFT,
 	TURN_RIGHT,
+	MELEE_FORWARD,
+	MELEE_RIGHT,
+	MELEE_LEFT,
 	WAIT
 }
 
@@ -78,8 +81,8 @@ pub impl Action {
 		match *self {
 			MOVE_FORWARD => 10u,
 			MOVE_BACKWARD => 15u,
-			TURN_RIGHT => 7u,
-			TURN_LEFT => 7u,
+			TURN_RIGHT|TURN_LEFT => 6u,
+			MELEE_FORWARD|MELEE_LEFT|MELEE_RIGHT=> 4u,
 			WAIT => 1u
 		}
 	}
@@ -87,8 +90,8 @@ pub impl Action {
 		match *self {
 			MOVE_FORWARD => 10u,
 			MOVE_BACKWARD => 10u,
-			TURN_RIGHT => 7u,
-			TURN_LEFT => 7u,
+			TURN_RIGHT|TURN_LEFT => 6u,
+			MELEE_FORWARD|MELEE_LEFT|MELEE_RIGHT=> 8u,
 			WAIT => 0u
 		}
 	}
@@ -229,6 +232,9 @@ pub impl Creature {
 						MOVE_BACKWARD => self.move_backward(map),
 						TURN_RIGHT => self.turn_right(),
 						TURN_LEFT => self.turn_left(),
+						MELEE_FORWARD => self.melee_forward(map),
+						MELEE_LEFT => self.melee_left(map),
+						MELEE_RIGHT => self.melee_right(map),
 						WAIT => {}
 					}
 					self.action = None
@@ -269,6 +275,30 @@ pub impl Creature {
 		if (map.at(&new_position).is_passable()) {
 			map.move_creature(self, &new_position);
 		}
+	}
+
+	fn melee(@mut self, map : &mut Map, pos : &Position) {
+		match map.creature_at(pos) {
+			Some(cr) => {
+				cr.hit();
+			},
+			None => {}
+		}
+	}
+
+	fn hit(@mut self) {
+	}
+
+	fn melee_forward(@mut self, map : &mut Map) {
+		self.melee(map, &self.pos.neighbor(self.dir));
+	}
+
+	fn melee_left(@mut self, map : &mut Map) {
+		self.melee(map, &self.pos.neighbor(self.dir.left()));
+	}
+
+	fn melee_right(@mut self, map : &mut Map) {
+		self.melee(map, &self.pos.neighbor(self.dir.right()));
 	}
 
 	fn mark_visible(&mut self, map : &Map, pos : &Position) {

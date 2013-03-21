@@ -193,14 +193,11 @@ pub impl UI {
 			let mut base = rm.base();
 			if player.knows(base, tpos) {
 				let t = base.at(tpos);
-				//let t = do rm.for_base() |map| { map.at(tpos) };
 				let sprite = Sprite::for_tile(t, player.sees(base, tpos));
 				self.view.draw_sprite(self.screen, self.tiles, pos, sprite);
 
 				if player.sees(base, tpos) {
 					match base.creature_at(tpos) {
-					//let c = do rm.for_base() |map| { map.creature_at(tpos) };
-					//match c {
 						Some(creature) => {
 							let sprite = Sprite::for_creature(
 								creature.dir.relative_to(player.dir)

@@ -203,24 +203,6 @@ pure fn modulo(x :int, m : int) -> int {
 	if r < 0 { r+m } else { r }
 }
 
-/*
- * Creature helper to deal with
- * optional map.
- */
-/*
-macro_rules! if_map(
-		(|$v:ident| $inexp:expr ) => (
-		{
-			let maybe_map = self.map;
-			match (maybe_map) {
-				Some($v) => $inexp,
-				_ => {}
-			};
-		}
-		)
-	)
-*/
-
 const PLAYER_VIEW: int = 10;
 pub impl Creature {
 	static fn new(map : &mut Map, position : &Position, direction : Direction) -> Creature {
@@ -288,15 +270,6 @@ pub impl Creature {
 			map.move_creature(self, &new_position);
 		}
 	}
-
-	/*
-	pure fn wrap_position(&self, pos : &Position) -> Position {
-		Position {
-			x: modulo(pos.x, self.map_width as int),
-			y: modulo(pos.y, self.map_height as int)
-		}
-	}
-	*/
 
 	fn mark_visible(&mut self, map : &Map, pos : &Position) {
 		let p = map.wrap_position(pos);

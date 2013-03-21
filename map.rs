@@ -19,14 +19,17 @@ pub struct Position {
 	y : int
 }
 
+pub enum RelativeDir {
+	FORWARD,
+	BACKWARD,
+	RIGHT,
+	LEFT
+}
+
 pub enum Action {
-	MOVE_FORWARD,
-	MOVE_BACKWARD,
-	TURN_LEFT,
-	TURN_RIGHT,
-	MELEE_FORWARD,
-	MELEE_RIGHT,
-	MELEE_LEFT,
+	MOVE(RelativeDir),
+	TURN(RelativeDir),
+	MELEE(RelativeDir),
 	WAIT
 }
 
@@ -79,46 +82,45 @@ pub struct RelativeMap {
 pub impl Action {
 	pure fn pre_ticks(&self) -> uint {
 		match *self {
-			MOVE_FORWARD => 10u,
-			MOVE_BACKWARD => 15u,
-			TURN_RIGHT|TURN_LEFT => 6u,
-			MELEE_FORWARD|MELEE_LEFT|MELEE_RIGHT=> 4u,
+			MOVE(BACKWARD) => 15u,
+			MOVE(_) => 10u,
+			TURN(_) => 5u,
+			MELEE(_) => 4u,
 			WAIT => 1u
 		}
 	}
 	pure fn post_ticks(&self) -> uint {
 		match *self {
-			MOVE_FORWARD => 10u,
-			MOVE_BACKWARD => 10u,
-			TURN_RIGHT|TURN_LEFT => 6u,
-			MELEE_FORWARD|MELEE_LEFT|MELEE_RIGHT=> 8u,
+			MOVE(_) => 10u,
+			TURN(_) => 5u,
+			MELEE(_) => 8u,
 			WAIT => 0u
 		}
 	}
 }
 
+pub impl RelativeDir {
+	pure fn to_int(&self) -> int {
+		match *self {
+			FORWARD => 0,
+			BACKWARD => 3,
+			RIGHT => 1,
+			LEFT => 5
+		}
+	}
+}
+
 pub impl Direction {
-	pure fn right(&self) -> Direction {
-		unsafe {
-			cast::reinterpret_cast(&modulo((*self as int + 1), 6))
-		}
-	}
-
-	pure fn left(&self) -> Direction {
-		unsafe {
-			cast::reinterpret_cast(&modulo((*self as int + 5), 6))
-		}
-	}
-
-	pure fn turn(&self, i : int) -> Direction {
+	pure fn turn(&self, rd : RelativeDir) -> Direction {
+		let i = rd.to_int();
 		unsafe {
 			cast::reinterpret_cast(&modulo((*self as int + i), 6))
 		}
 	}
 
-	pure fn opposite(&self) -> Direction {
+	pure fn turn_by_int(&self, i : int) -> Direction {
 		unsafe {
-			cast::reinterpret_cast(&modulo((*self as int + 3), 6))
+			cast::reinterpret_cast(&modulo((*self as int + i), 6))
 		}
 	}
 
@@ -228,13 +230,9 @@ pub impl Creature {
 				Some(action) => {
 					redraw = true;
 					match (action) {
-						MOVE_FORWARD => self.move_forward(map),
-						MOVE_BACKWARD => self.move_backward(map),
-						TURN_RIGHT => self.turn_right(),
-						TURN_LEFT => self.turn_left(),
-						MELEE_FORWARD => self.melee_forward(map),
-						MELEE_LEFT => self.melee_left(map),
-						MELEE_RIGHT => self.melee_right(map),
+						MOVE(d) => self.move(map, d),
+						TURN(d) => self.turn(d),
+						MELEE(d) => self.melee(map, d),
 						WAIT => {}
 					}
 					self.action = None
@@ -254,31 +252,21 @@ pub impl Creature {
 		redraw
 	}
 
-	fn turn_right(@mut self) {
-		 self.dir = self.dir.right();
+	fn turn(@mut self, rd : RelativeDir) {
+		 self.dir = self.dir.turn(rd);
 	}
 
-	fn turn_left(@mut self) -> () {
-		self.dir = self.dir.left();
-	}
-
-	fn move_forward(@mut self, map : &mut Map) {
-		let new_position = self.pos.neighbor(self.dir);
-		if (map.at(&new_position).is_passable()) {
-			map.move_creature(self, &new_position);
-		}
-	}
-
-	fn move_backward(@mut self, map : &mut Map) {
-		let new_position = self.pos.neighbor(self.dir.opposite());
+	fn move(@mut self, map : &mut Map,  rd : RelativeDir) {
+		let new_position = self.pos.neighbor(self.dir.turn(rd));
 		self.mark_known(map, &new_position);
 		if (map.at(&new_position).is_passable()) {
 			map.move_creature(self, &new_position);
 		}
 	}
 
-	fn melee(@mut self, map : &mut Map, pos : &Position) {
-		match map.creature_at(pos) {
+	fn melee(@mut self, map : &mut Map, rd : RelativeDir) {
+		let new_position = self.pos.neighbor(self.dir.turn(rd));
+		match map.creature_at(&new_position) {
 			Some(cr) => {
 				cr.hit();
 			},
@@ -287,18 +275,6 @@ pub impl Creature {
 	}
 
 	fn hit(@mut self) {
-	}
-
-	fn melee_forward(@mut self, map : &mut Map) {
-		self.melee(map, &self.pos.neighbor(self.dir));
-	}
-
-	fn melee_left(@mut self, map : &mut Map) {
-		self.melee(map, &self.pos.neighbor(self.dir.left()));
-	}
-
-	fn melee_right(@mut self, map : &mut Map) {
-		self.melee(map, &self.pos.neighbor(self.dir.right()));
 	}
 
 	fn mark_visible(&mut self, map : &Map, pos : &Position) {
@@ -354,13 +330,13 @@ pub impl Creature {
 			},
 			(Some(dir), None) => {
 				if main_dir == dir {
-					~[dir, dir.left(), dir.right()]
+					~[dir, dir.turn(LEFT), dir.turn(RIGHT)]
 				} else {
 					~[dir, main_dir]
 				}
 			},
 			_ => {
-				~[main_dir, main_dir.left(), main_dir.right()]
+				~[main_dir, main_dir.turn(LEFT), main_dir.turn(RIGHT)]
 			}
 		};
 
@@ -514,7 +490,7 @@ pub impl Map {
 			y: rng.gen_int_range(0, self.height as int)
 		};
 
-		let dir = N.turn(rng.gen_int_range(0, 6));
+		let dir = N.turn_by_int(rng.gen_int_range(0, 6));
 
 		match (self.spawn_creature(pos, dir)) {
 			None => self.spawn_random_creature(),

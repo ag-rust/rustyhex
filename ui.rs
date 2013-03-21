@@ -1,5 +1,4 @@
 use core::str;
-use core::io;
 
 use sdl;
 use sdl::video;
@@ -219,54 +218,61 @@ pub impl UI {
 		}
 	}
 
+	fn keyevent_to_action(&mut self, key : &event::Key, m : &[event::Mod] ) -> Option<map::Action> {
+		let attack = m.contains(&event::LCtrlMod);
+		let strafe = m.contains(&event::LShiftMod);
+		let dir = match *key {
+			event::KKey | event::UpKey => {
+				Some(map::FORWARD)
+			},
+			event::JKey | event::DownKey => {
+				Some(map::BACKWARD)
+			},
+			event::HKey | event::LeftKey => {
+				Some(map::LEFT)
+			},
+			event::LKey | event::RightKey => {
+				Some(map::RIGHT)
+			},
+			_ => None
+		};
+		match *key {
+			event::EscapeKey => {
+				self.exit = true;
+				return Some(map::WAIT);
+			},
+			_ => {}
+		};
+		match (dir, strafe, attack) {
+			(Some(d), _, true) => {
+				Some(map::MELEE(d))
+			},
+			(Some(d), true, _) => {
+				Some(map::MOVE(d))
+			},
+			(Some(d), false, _) => {
+				match (d) {
+					map::FORWARD|map::BACKWARD => {
+						Some(map::MOVE(d))
+					},
+					__=> {
+						Some(map::TURN(d))
+					}
+				}
+			},
+			_ => None
+		}
+	}
+
 	fn get_input(&mut self) -> map::Action {
 		loop {
 			match event::wait_event() {
 				event::KeyEvent(key, true , m, _) => {
-					let ctrl = m.contains(&event::LCtrlMod);
-
-					if ctrl {
-						match key {
-							event::HKey | event::LeftKey => {
-								return map::MELEE_LEFT;
-							},
-							event::LKey | event::RightKey => {
-								return map::MELEE_RIGHT;
-							},
-							event::KKey | event::UpKey => {
-								return map::MELEE_FORWARD;
-							},
-							_ => {}
-						}
-					} else {
-						match key {
-							event::EscapeKey => {
-								self.exit = true;
-								return map::WAIT;
-							},
-							event::KKey | event::UpKey => {
-								if (m.contains(&event::RCtrlMod)) {
-									return map::MELEE_FORWARD;
-								} else {
-									return map::MOVE_FORWARD;
-								}
-							},
-							event::HKey | event::LeftKey => {
-								return map::TURN_LEFT;
-							},
-							event::LKey | event::RightKey => {
-								return map::TURN_RIGHT;
-							},
-							event::JKey | event::DownKey => {
-								return map::MOVE_BACKWARD;
-							},
-							event::CommaKey | event::SpaceKey => {
-								return map::WAIT;
-							},
-							k => {
-								io::print(fmt!("%d\n", k as int));
-							}
-						}
+					match self.keyevent_to_action(&key, m) {
+						Some(a) => {
+							return a;
+						},
+						None => {}
 					}
 				},
 				event::NoEvent => {},

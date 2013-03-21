@@ -21,14 +21,14 @@ impl map::MoveController for MonsterController {
 	fn get_move(&mut self, map : &mut map::Map, cr : @mut map::Creature) -> map::Action {
 		let rng = rand::Rng();
 		match rng.gen_int_range(0, 10) {
-			0 => map::TURN_LEFT,
-			1 => map::TURN_RIGHT,
+			0 => map::TURN(map::LEFT),
+			1 => map::TURN(map::RIGHT),
 			_ => {
 				let in_front = map.at(&cr.pos.neighbor(cr.dir));
 				if in_front.is_passable() {
-					map::MOVE_FORWARD
+					map::MOVE(map::FORWARD)
 				} else {
-					map::TURN_LEFT
+					map::TURN(map::LEFT)
 				}
 			}
 		}

@@ -16,18 +16,18 @@ pub extern {
 	fn usleep(n : c_int) -> c_int;
 }
 
-const SCREEN_WIDTH: uint = 800;
-const SCREEN_HEIGHT: uint = 600;
-const SCREEN_BPP: uint = 32;
+static SCREEN_WIDTH: uint = 800;
+static SCREEN_HEIGHT: uint = 600;
+static SCREEN_BPP: uint = 32;
 
-const HEX_WIDTH: uint = 66;
-const HEX_HEIGHT: uint = 56;
-const HEX_SIDE_WIDTH: uint = 16;
-const HEX_BORDER_WIDTH:  uint = 5;
-const HEX_BORDER_HEIGHT: uint = 5;
+static HEX_WIDTH: uint = 66;
+static HEX_HEIGHT: uint = 56;
+static HEX_SIDE_WIDTH: uint = 16;
+static HEX_BORDER_WIDTH:  uint = 5;
+static HEX_BORDER_HEIGHT: uint = 5;
 
-const HEX_FULL_WIDTH: uint = HEX_WIDTH + 2 * HEX_BORDER_WIDTH;
-const HEX_FULL_HEIGHT: uint = HEX_HEIGHT + 2 * HEX_BORDER_HEIGHT;
+static HEX_FULL_WIDTH: uint = HEX_WIDTH + 2 * HEX_BORDER_WIDTH;
+static HEX_FULL_HEIGHT: uint = HEX_HEIGHT + 2 * HEX_BORDER_HEIGHT;
 
 struct Sprite {
 	x : uint,
@@ -41,31 +41,31 @@ struct View {
 
 pub struct UI {
 	screen : ~video::Surface,
-	player : @mut map::Creature,
+	player : Option<@mut map::Creature>,
 	tiles : ~video::Surface,
 	view : ~View,
 	exit : bool
 }
 
 impl map::Position {
-	pure fn to_pix_x(&self) -> int {
+	fn to_pix_x(&self) -> int {
 		self.x * ((HEX_WIDTH - HEX_SIDE_WIDTH) as int) + HEX_BORDER_WIDTH as int
 	}
 
-	pure fn to_pix_y(&self) -> int {
-		self.y * (HEX_HEIGHT  as int)
+	fn to_pix_y(&self) -> int {
+		self.y * (HEX_HEIGHT as int)
 		- (self.x  * (HEX_HEIGHT as int)) / 2 + HEX_BORDER_HEIGHT as int
 	}
 
-	pure fn to_pix_cx(&self) -> int {
+	fn to_pix_cx(&self) -> int {
 		self.to_pix_x() + (HEX_FULL_WIDTH as int) / 2
 	}
 
-	pure fn to_pix_cy(&self) -> int {
+	fn to_pix_cy(&self) -> int {
 		self.to_pix_y() + (HEX_FULL_HEIGHT as int) / 2
 	}
 
-	pure fn to_rect(&self) -> Rect {
+	fn to_rect(&self) -> Rect {
 		Rect {
 			x: self.to_pix_x() as i16, y: self.to_pix_y() as i16,
 			w: (HEX_WIDTH + 2 * HEX_BORDER_WIDTH) as u16,
@@ -75,7 +75,7 @@ impl map::Position {
 }
 
 impl Sprite {
-	static fn for_tile(tile : map::Tile, visible : bool) -> Sprite {
+	fn for_tile(tile : map::Tile, visible : bool) -> Sprite {
 		let mut spr = match tile {
 				map::FLOOR => Sprite{ x: 0, y: 1 },
 				map::WALL => Sprite{ x: 0, y: 2 }
@@ -86,11 +86,11 @@ impl Sprite {
 		}
 		spr
 	}
-	static fn for_creature(dir : map::Direction) -> Sprite {
+	fn for_creature(dir : map::Direction) -> Sprite {
 		Sprite{ x: dir.to_uint(), y: 3 }
 	}
 
-	static fn human() -> Sprite {
+	fn human() -> Sprite {
 		Sprite{ x: 1, y: 0 }
 	}
 
@@ -116,7 +116,7 @@ fn load_or_die(file : ~str) -> ~video::Surface {
 }
 
 pub impl View {
-	static fn new(x : int, y : int) -> View {
+	fn new(x : int, y : int) -> View {
 		View{ x_offset: x, y_offset: y }
 	}
 
@@ -152,7 +152,7 @@ pub impl View {
 }
 
 pub impl UI {
-	static fn new(player : @mut map::Creature) -> UI {
+	fn new() -> UI {
 		sdl::init(&[sdl::InitEverything]);
 		img::init([img::InitPNG]);
 
@@ -174,7 +174,7 @@ pub impl UI {
 
 		UI {
 			screen: screen,
-			player: player,
+			player: None,
 			exit: false,
 			view: ~View {
 			  x_offset: (SCREEN_WIDTH - HEX_FULL_WIDTH) as int / 2,
@@ -184,26 +184,39 @@ pub impl UI {
 		}
 	}
 
+	fn set_player(&mut self, p : @mut map::Creature) {
+		self.player = Some(p);
+	}
+
 	fn update(&mut self) {
+
+		let player = match self.player {
+			Some(p) => p,
+			None => {
+				return;
+			}
+		};
+
 		self.screen.fill(video::RGB(0, 0, 0));
 
-		let p = &*self.player; //workaround borrowing bug
-		let mut rm = map::RelativeMap::new(self.player.map, &p.pos, self.player.dir);
+		let p = &*player;
+		let mut rm = map::RelativeMap::new(p.map, &p.pos, p.dir);
 
-		do self.player.each_in_view_rect() | pos : &map::Position | {
+		do player.each_in_view_rect() | pos : &map::Position | {
 			let tpos = &rm.translate(pos);
 			let mut base = rm.base();
-			if self.player.knows(tpos) {
+			if player.knows(tpos) {
 				let t = base.at(tpos);
-				let sprite = Sprite::for_tile(t, self.player.sees(tpos));
+				let sprite = Sprite::for_tile(t, player.sees(tpos));
 				self.view.draw_sprite(self.screen, self.tiles, pos, sprite);
 
-				if self.player.sees(tpos) {
+				if player.sees(tpos) {
 					match base.creature_at(tpos) {
 						Some(creature) => {
-							let sprite = Sprite::for_creature(
-								creature.dir.relative_to(self.player.dir)
-							);
+							let d = player.dir; // workarounds
+							let cd = creature.dir;
+							let d = cd.relative_to(d);
+							let sprite = Sprite::for_creature(d);
 							self.view.draw_sprite(self.screen, self.tiles, pos, sprite);
 						},
 						None => {}

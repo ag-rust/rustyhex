@@ -4,15 +4,16 @@ pub mod map;
 pub mod ui;
 
 use map::MapView;
+use core::rand::RngUtil;
 
 pub struct PlayerController {
-	ui : &'self mut ui::UI
+	ui : @mut ui::UI
 }
 
 pub struct MonsterController(());
 
 impl MonsterController {
-	static fn new() -> MonsterController {
+	fn new() -> MonsterController {
 		 MonsterController(())
 	}
 }
@@ -24,7 +25,10 @@ impl map::MoveController for MonsterController {
 			0 => map::TURN(map::LEFT),
 			1 => map::TURN(map::RIGHT),
 			_ => {
-				let in_front = cr.map.at(&cr.pos.neighbor(cr.dir));
+				let cd = cr.dir;
+				let pos = cr.pos;
+				let pos = pos.neighbor(cd);
+				let in_front = cr.map.at(&pos);
 				if in_front.is_passable() {
 					map::MOVE(map::FORWARD)
 				} else {
@@ -35,33 +39,35 @@ impl map::MoveController for MonsterController {
 	}
 }
 
-impl<'self> PlayerController<'self> {
-	static fn new(ui : &'r mut ui::UI) -> PlayerController/&r {
+impl PlayerController {
+	fn new(ui : @mut ui::UI) -> PlayerController {
 		PlayerController {ui: ui}
 	}
 }
 
-impl map::MoveController for PlayerController<'self> {
+impl map::MoveController for PlayerController {
 	fn get_move(&mut self, _ : @mut map::Creature) -> map::Action {
 		self.ui.get_input()
 	}
 }
 
+
 fn sdl_main() {
+	let mut ui = @mut ui::UI::new();
 
 	let map = @mut map::Map::new();
-	let mut monster_ai = ~MonsterController::new();
 
-	let mut player = map.spawn_random_creature();
 
 	let mut creatures = vec::from_fn(30, |_| {
-			map.spawn_random_creature()
+			map.spawn_random_creature(@MonsterController::new())
 		}
 	);
+
+	let player = map.spawn_random_creature(@PlayerController::new(ui));
 	creatures.push(player);
 
 	player.update_visibility();
-	let mut ui = ~ui::UI::new(player);
+	ui.set_player(player);
 	ui.update();
 
 	loop {
@@ -70,18 +76,18 @@ fn sdl_main() {
 			let old_pos = creature.pos;
 
 			let causes_redraw = if creature.pos == player.pos {
-				let mut player_ai = ~PlayerController::new(ui);
-				let redraw = creature.tick(player_ai);
+				let redraw = creature.tick();
 
 				if (redraw) {
 					player.update_visibility();
 				}
 				redraw
 			} else {
-				let mut redraw = creature.tick(monster_ai);
+				let mut redraw = creature.tick();
 
 				if (redraw) {
-					if !player.sees(&old_pos) && !player.sees(&creature.pos) {
+					let pos = creature.pos;
+					if !player.sees(&old_pos) && !player.sees(&pos) {
 						redraw = false;
 					}
 				}

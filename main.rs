@@ -21,14 +21,27 @@ impl MonsterController {
 impl map::MoveController for MonsterController {
 	fn get_move(&mut self, cr : @mut map::Creature) -> map::Action {
 		let rng = rand::Rng();
+
+		for [map::FORWARD, map::LEFT, map::RIGHT].each |dir| {
+			let pos = cr.pos;
+			let cd = cr.dir;
+			let pos = pos.neighbor(cd.turn(*dir));
+			match cr.map.creature_at(&pos) {
+				None => {}
+				Some(_) => {
+					return map::MELEE(*dir);
+				}
+			}
+		};
+
 		match rng.gen_int_range(0, 10) {
 			0 => map::TURN(map::LEFT),
 			1 => map::TURN(map::RIGHT),
 			_ => {
 				let cd = cr.dir;
 				let pos = cr.pos;
-				let pos = pos.neighbor(cd);
-				let in_front = cr.map.at(&pos);
+				let front = pos.neighbor(cd);
+				let in_front = cr.map.at(&front);
 				if in_front.is_passable() {
 					map::MOVE(map::FORWARD)
 				} else {
@@ -71,40 +84,30 @@ fn sdl_main() {
 	ui.update();
 
 	loop {
-		let mut redraw = false;
 		for creatures.each |creature| {
-			let old_pos = creature.pos;
-
-			let causes_redraw = if creature.pos == player.pos {
+			if (!creature.alive()) {
+				loop;
+			}
+			if creature.pos == player.pos {
 				let redraw = creature.tick();
 
 				if (redraw) {
 					player.update_visibility();
 				}
-				redraw
 			} else {
-				let mut redraw = creature.tick();
-
-				if (redraw) {
-					let pos = creature.pos;
-					if !player.sees(&old_pos) && !player.sees(&pos) {
-						redraw = false;
-					}
-				}
-				redraw
+				creature.tick();
 			};
 
 			if (ui.exit) {
 				return;
 			}
-			if causes_redraw {
-				redraw = true;
-			}
 		}
 
-		if redraw {
-			ui.update();
+		if (!player.alive()) {
+			ui.check_exit_input();
 		}
+
+		ui.update();
 	}
 }
 

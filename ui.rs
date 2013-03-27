@@ -89,6 +89,9 @@ impl Sprite {
 	fn for_creature(dir : map::Direction) -> Sprite {
 		Sprite{ x: dir.to_uint(), y: 3 }
 	}
+	fn for_hit() -> Sprite {
+		Sprite{ x: 0, y: 0 }
+	}
 
 	fn human() -> Sprite {
 		Sprite{ x: 1, y: 0 }
@@ -213,6 +216,10 @@ pub impl UI {
 				if player.sees(tpos) {
 					match base.creature_at(tpos) {
 						Some(creature) => {
+							if (creature.last_hit_time < 8) {
+								let sprite = Sprite::for_hit();
+								self.view.draw_sprite(self.screen, self.tiles, pos, sprite);
+							}
 							let d = player.dir; // workarounds
 							let cd = creature.dir;
 							let d = cd.relative_to(d);
@@ -225,12 +232,14 @@ pub impl UI {
 			}
 		}
 
-		self.view.draw_sprite(self.screen, self.tiles, &map::Position {x:0, y:0}, Sprite::human());
+		if (player.alive()) {
+			self.view.draw_sprite(self.screen, self.tiles, &map::Position {x:0, y:0}, Sprite::human());
+		}
 
 		self.screen.flip();
 
 		unsafe {
-			usleep(50000);
+			usleep(1000);
 		}
 	}
 
@@ -257,6 +266,9 @@ pub impl UI {
 				self.exit = true;
 				return Some(map::WAIT);
 			},
+			event::PeriodKey | event::CommaKey => {
+				return Some(map::WAIT);
+			},
 			_ => {}
 		};
 		match (dir, strafe, attack) {
@@ -280,6 +292,20 @@ pub impl UI {
 		}
 	}
 
+	fn check_exit_input(&mut self) {
+		match event::poll_event() {
+			event::KeyEvent(key, true , _, _) => {
+				match (key) {
+					event::EscapeKey => {
+						self.exit = true;
+					},
+					_ => {}
+				}
+			},
+			_ => {}
+		}
+	}
+
 	fn get_input(&mut self) -> map::Action {
 		loop {
 			match event::wait_event() {
@@ -297,5 +323,3 @@ pub impl UI {
 		}
 	}
 }
-
-

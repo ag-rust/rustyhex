@@ -43,6 +43,8 @@ pub struct Creature {
 	map : @mut Map,
 	pos : Position,
 	dir : Direction,
+	last_hit_time : int,
+	life : int,
 	controller : @MoveController,
 	action : Option<Action>,
 	pre_action_ticks : uint,
@@ -64,7 +66,7 @@ static MAP_HEIGHT : uint = 32;
 pub struct Map {
 	tiles : ~[ ~[ Tile ] ],
 	creatures : ~[ ~[ Option<@mut Creature> ] ],
-	width: uint,
+	width : uint,
 	height : uint
 }
 
@@ -235,6 +237,8 @@ pub impl Creature {
 			) -> Creature {
 		Creature {
 			map: map,
+			last_hit_time: 1000,
+			life: 3,
 			controller: ctr as @MoveController,
 			pos : *position, dir : direction,
 			action: None, pre_action_ticks: 0, post_action_ticks: 0,
@@ -247,6 +251,9 @@ pub impl Creature {
 
 	fn tick(@mut self) -> bool {
 		let mut redraw = false;
+
+		self.last_hit_time += 1;
+
 		if (self.pre_action_ticks > 0) {
 			self.pre_action_ticks -= 1;
 		} else {
@@ -303,6 +310,20 @@ pub impl Creature {
 	}
 
 	fn hit(@mut self) {
+		self.last_hit_time = 0;
+		self.life -= 1;
+
+		if (self.life <= 0) {
+			self.die();
+		}
+	}
+
+	fn die(@mut self) {
+		self.map.remove_creature(self);
+	}
+
+	fn alive(&mut self) -> bool {
+		self.life > 0
 	}
 
 	fn mark_visible(&mut self, pos : &Position) {
@@ -543,6 +564,12 @@ pub impl Map {
 				self.creatures[pos.x][pos.y] = Some(cr);
 			}
 		}
+	}
+
+	fn remove_creature(&mut self, cr : @mut Creature) {
+		let pos = cr.pos;
+		let pos = self.wrap_position(&pos);
+		self.creatures[pos.x][pos.y] = None;
 	}
 }
 

@@ -1,4 +1,4 @@
-Rustyhex is a work toward implementing a simple rouge-like game with hex tiles.
+Rustyhex is a work toward implementing a simple roguelike game with hex tiles.
 
 It's written in Rust and it's primary purpose is to learn and practice Rust language.
 
